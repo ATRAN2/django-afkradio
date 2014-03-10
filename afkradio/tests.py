@@ -120,14 +120,29 @@ class ModelTypesMethodTests(TestCase):
 		self.assertQuerysetEqual(Types.objects.all(),[])
 
 class UtilPlaybackMethodTests(TestCase):
-	def test_mpc_play(self):
+# 	def test_mpc_play(self):
+# 		"""
+# 		Test is mpc_play that plays a song in MPC works.
+# 		"""
+# 		Playback.mpc_play()
+# 
+# 	def test_mpc_stop(self):
+# 		"""
+# 		Test is mpc_stop that stops MPC works.
+# 		"""
+# 		Playback.mpc_stop()
+	def test_mpc_play_from_song_added_to_Songs(self):
 		"""
-		Test is mpc_play that plays a song in MPC works.
+		Clears the current playlist, adds test song /MPD_ROOT/Test Path/test.mp3
+		to models.Songs, adds the song to mpc, then plays it
 		"""
+		Songs.add_song_exiftool(
+			"Test Path/test.mp3",
+			"Test_Extra"
+		)
+		test_song = Songs.objects.get(id=1)
+		Playback.mpc_clear()
+		Playback.mpc_add(test_song.filepath)
 		Playback.mpc_play()
 
-	def test_mpc_stop(self):
-		"""
-		Test is mpc_stop that stops MPC works.
-		"""
-		Playback.mpc_stop()
+
