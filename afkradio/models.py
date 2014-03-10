@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from afkradio.errors import *
 import os
 import subprocess
 
@@ -24,7 +25,7 @@ class Songs(models.Model):
 	title = models.CharField(max_length=200, blank=True)
 	artist = models.CharField(max_length=200, blank=True)
 	album = models.CharField(max_length=200, blank=True)
-	year = models.IntegerField('Year', null=True, blank=True)
+	year = models.CharField(max_length=20, blank=True)
 	duration = models.CharField(max_length=20, blank=True)
 	filepath = models.CharField(max_length=500, blank=True)
 	date_added = models.DateTimeField('Date Added', null=True, blank=True)
@@ -35,13 +36,20 @@ class Songs(models.Model):
 	# on the song and adds the song to the database with existing
 	# metadata
 	@classmethod
-	def add_song_exiftool(cls, rel_song_path, extra):
+	def add_song_exiftool(cls, rel_song_path, extra=None):
+		# Get absolute path of song
+		abs_song_path = os.path.join(MPD_DB_ROOT, rel_song_path)
+		# First check if the file is a duplicate
+		if cls.objects.filter(filepath=rel_song_path):
+			raise DuplicateEntryError("There is already a song with the same path in the database: " +
+					abs_song_path)
+			return abs_song_path
 		# Create our new song instance and tie fields to variables
 		new_song = cls()
 		# Get absolute path of song
 		abs_song_path = os.path.join(MPD_DB_ROOT, rel_song_path)
 		# List supported file types in supporteD_file_types
-		supported_file_types = ['MP3', 'OGG', 'FLAC',]
+		supported_file_types = ('MP3', 'OGG', 'FLAC',)
 		# Dict of metadata that we want from exiftool and corresponding fields
 		# Keys are exiftool labels for the metadata
 		# Values are the corresponding field names of our new Songs model object
@@ -60,14 +68,16 @@ class Songs(models.Model):
 			line = proc.stdout.readline()
 			# Halt if no file was found in the rel_song_path
 			if line.startswith('File not found'):
-				return 'File not found'
+				raise FileNotFoundError("File not found: " + abs_song_path)
+				return abs_song_path
 			# Halt if the file is not a supported file type
 			elif line.startswith('File Type'):
 				colon_index = line.find(':')
 				exiftool_metadata_contents = line[(colon_index+2):-1]
 				file_type = exiftool_metadata_contents
 				if file_type not in supported_file_types:
-					return 'Not a supported file type. ' + file_type + ' is not ' + str(supported_file_types)
+					raise FileTypeError('Not a supported file type. "' + file_type + '" is not ' + str(supported_file_types))
+					return abs_file_path
 			elif line !='':
 				# Get any metadata we can find from the song that's one of the
 				# metadata entries defined in metadata_dict
@@ -88,7 +98,7 @@ class Songs(models.Model):
 		# Add Date Added data
 		new_song.date_added = timezone.now()
 		# Add extra data if we got some
-		if extra is not None:
+		if extra is not None and not '':
 			new_song.extra = extra
 		new_song.save()
 
@@ -141,7 +151,6 @@ class SongToType(models.Model):
 	def __unicode__(self):
 		return self.associated_genres
 
-class Playback:
-	@classmethod
-	def play_mpd(self):
-		print 'poop'
+# class PlayHistory(model.Model):
+
+# class Playlist(model.Model):

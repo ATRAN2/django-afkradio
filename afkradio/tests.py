@@ -1,8 +1,10 @@
 from django.test import TestCase
 from afkradio.models import Songs, Types
 from django.utils import timezone
-from afkradio.utils import Playback
+from afkradio.utils import Playback, Database
+from afkradio.errors import *
 import datetime
+import time
 
 class ModelSongsMethodTests(TestCase):
 	def test_add_song_exiftool_test_song(self):
@@ -10,11 +12,8 @@ class ModelSongsMethodTests(TestCase):
 		Tests if we can add a new song to the database as well as
 		getting the corresponding metadata using exiftool
 		"""
-		Songs.add_song_exiftool(
-			"Test Path/test.mp3",
-			"Test_Extra"
-		)
-		new_song = Songs.objects.get(year=1111)
+		Songs.add_song_exiftool("Test Path/test.mp3", "Test_Extra")
+		new_song = Songs.objects.get(year='1111')
 		self.assertEqual(
 				timezone.now()-datetime.timedelta(seconds=5) < new_song.date_added,
 				True
@@ -23,7 +22,7 @@ class ModelSongsMethodTests(TestCase):
 				'Test_Title' : 'title',
 				'Test_Artist' : 'artist',
 				'Test_Album' : 'album',
-				1111 : 'year',
+				'1111' : 'year',
 				'0:04:13' : 'duration',
 				'Test Path/test.mp3' : 'filepath',
 				'Test_Extra' : 'extra',
@@ -36,25 +35,30 @@ class ModelSongsMethodTests(TestCase):
 
 	def test_add_song_exiftool_nonexistant_song(self):
 		"""
-		Tests handling of add_song_exiftool if the song in the path 
+		Tests handling of add_song_exiftool() if the song in the path 
 		does not exist
 		"""
-		Songs.add_song_exiftool(
-			"this folder path/doesn't exist.mp3",
-			"Test_Extra",
-		)
-		self.assertQuerysetEqual(Types.objects.all(), [])
+		with self.assertRaises(FileNotFoundError):
+			Songs.add_song_exiftool("this folder path/doesn't exist.mp3")
+		self.assertQuerysetEqual(Songs.objects.all(), [])
 	
 	def test_add_song_exiftool_nonsupported_format(self):
 		"""
-		Tests handling of add_song_exiftool if the songi n the path
+		Tests handling of add_song_exiftool() if the song in the path
 		is not a supported file type
 		"""
-		Songs.add_song_exiftool(
-			"Test Path/exiftool",
-			"Test_Extra",
-		)
-		self.assertQuerysetEqual(Types.objects.all(), [])
+		with self.assertRaises(FileTypeError):
+			Songs.add_song_exiftool("Test Path/exiftool")
+		self.assertQuerysetEqual(Songs.objects.all(), [])
+
+	def test_add_song_exiftool_same_song(self):
+		"""
+		Tests handling of add_song_exiftool() if the same song is added twice
+		"""
+		Songs.add_song_exiftool("Test Path/test.mp3", "Test_Extra")
+		with self.assertRaises(DuplicateEntryError):
+			Songs.add_song_exiftool("Test Path/test.mp3", "Test_Extra")
+		self.assertQuerysetEqual(Songs.objects.all(), ['<Songs: Test_Title>'])
 
 class ModelTypesMethodTests(TestCase):
 	def test_add_type(self):
@@ -119,7 +123,7 @@ class ModelTypesMethodTests(TestCase):
 		Types.remove_type('remove_test2')
 		self.assertQuerysetEqual(Types.objects.all(),[])
 
-class UtilPlaybackMethodTests(TestCase):
+# class UtilPlaybackMethodTests(TestCase):
 # 	def test_mpc_play(self):
 # 		"""
 # 		Test is mpc_play that plays a song in MPC works.
@@ -131,18 +135,53 @@ class UtilPlaybackMethodTests(TestCase):
 # 		Test is mpc_stop that stops MPC works.
 # 		"""
 # 		Playback.mpc_stop()
-	def test_mpc_play_from_song_added_to_Songs(self):
+# 	def test_mpc_play_from_song_added_to_Songs(self):
+# 		"""
+# 		Clears the current playlist, adds test song /MPD_ROOT/Test Path/test.mp3
+# 		to models.Songs, adds the song to mpc, then plays it
+# 		"""
+# 		Songs.add_song_exiftool("Test Path/test.mp3")
+# 		test_song = Songs.objects.get(id=1)
+# 		Playback.mpc_clear()
+# 		Playback.mpc_add(test_song.filepath)
+# 		Playback.mpc_play()
+#		time.sleep(2)
+#		currently_playing = mpc_currently_playing()
+#		self.assertTrue(currently_playing, 'Test_Artist - Test_Title')
+
+class UtilDatabaseMethodTests(TestCase):
+	def test_update_database(self):
 		"""
-		Clears the current playlist, adds test song /MPD_ROOT/Test Path/test.mp3
-		to models.Songs, adds the song to mpc, then plays it
+		Tests the update_database method that finds all .mp3, .ogg, .flac
+		files in the MPD root recursively and adds it to the Songs database
 		"""
-		Songs.add_song_exiftool(
-			"Test Path/test.mp3",
-			"Test_Extra"
-		)
-		test_song = Songs.objects.get(id=1)
+		Database.update_songs_db()
+		test_song = Songs.objects.get(filepath='Test Path/test.mp3')
+		self.assertEqual(test_song.album, "Test_Album")
+		self.assertTrue(Songs.objects.count() >= 3)
+
+	def test_update_database_dupe(self):
+		"""
+		Tests if the update_database method ignores duplicate files
+		"""
+		Database.update_songs_db()
+		first_update_songs_count = Songs.objects.count()
+		dupe_list = Database.update_songs_db()
+		self.assertFalse(dupe_list == [])
+		self.assertEqual(Songs.objects.count(), first_update_songs_count)
+
+	def test_update_database_mpc_add_mpc_play(self):
+		"""
+		Add songs to songs db with Database.update_songs_db(), then add a song to 
+		songs db with mpc_add
+		"""
+		Database.update_songs_db()
+		test_song = Songs.objects.get(filepath='Test Path/test.mp3')
 		Playback.mpc_clear()
 		Playback.mpc_add(test_song.filepath)
 		Playback.mpc_play()
+		time.sleep(2)
+		currently_playing = Playback.mpc_currently_playing()
+		self.assertTrue(currently_playing, 'Test_Artist - Test_Song')
 
 
