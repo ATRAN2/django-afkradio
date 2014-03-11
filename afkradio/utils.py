@@ -55,6 +55,7 @@ class Database:
 	# Then it will read from the mpd music root defined in afkradio.models for any
 	# .mp3, .ogg, and .flac music files and add them with their respective metadata
 	# to the Songs model
+
 	@staticmethod
 	def update_songs_db():
 		Playback.mpc_update()
@@ -72,3 +73,34 @@ class Database:
 						dupe_list.append(os.path.join(root, filename))
 		if dupe_list is not []:
 			return dupe_list
+
+	@staticmethod
+	# associate_type_to_song
+	# Associates a Song in Song.models to a Type in Type.models
+	def associate_type_to_song(song_id, type):
+		# Check if the type exists
+		if Types.objects.check_if_exists(type) is True:
+			type_to_associate = Types.objects.get(types=type)
+		else:
+			return type
+		# Check if the Song exists
+		if Songs.objects.check_if_id_exists(song_id) is True:
+			song_to_associate = Songs.objects.get(id=song_id)
+		else:
+			return song_id
+		type_to_associate.associated_songs.add(song_to_associate)
+
+	@staticmethod
+	def dissociate_type_to_song(song_id, type):
+		# Check if the type exists
+		if Types.objects.check_if_exists(type) is True:
+			type_to_dissociate = Types.objects.get(types=type)
+		else:
+			return type
+		# Check if the Song exists
+		if Songs.objects.check_if_id_exists(song_id) is True:
+			song_to_dissociate = Songs.objects.get(id=song_id)
+		else:
+			return song_id
+		type_to_dissociate.associated_songs.remove(song_to_dissociate)
+

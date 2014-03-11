@@ -20,7 +20,29 @@ APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 # 	then filepath would be '/album/artist/example.mp3'
 # date_added is the date the song was added to the database
 # extra is for any other extra data or tags to aid in searching
-		
+class SongsManager(models.Manager):
+	def check_if_exists(self, song_query, field=id):
+		try: 
+			song_check = self.filter(field=song_query)
+		except FieldError:
+			raise FieldDoesNotExistError('The field ' + field + ' does not exist in the Songs model')
+			return False
+		if song_check is not []:
+			return True
+		else:
+			raise SongDoesNotExistError('The song with the ' + field + ' ' + song_query +
+				' does not exist')
+			return False
+	
+	def check_if_id_exists(self, song_id):
+		try:
+			self.get(id=song_id)
+			return True
+		except Songs.DoesNotExist:
+			raise SongNotFoundError('The song with the id ' + song_id +
+				' does not exist')
+			return False
+
 class Songs(models.Model):
 	title = models.CharField(max_length=200, blank=True)
 	artist = models.CharField(max_length=200, blank=True)
@@ -30,6 +52,7 @@ class Songs(models.Model):
 	filepath = models.CharField(max_length=500, blank=True)
 	date_added = models.DateTimeField('Date Added', null=True, blank=True)
 	extra = models.CharField(max_length=500, blank=True)
+	objects = SongsManager()
 
 	# add_song_exiftool method
 	# Given the song path relative MPD_DB_ROOT, runs exiftool
@@ -106,18 +129,30 @@ class Songs(models.Model):
 		try:
 			return self.title
 		except TypeError:
-			print 'The song has no title field'
+			return 'Empty title field'
 
 # Types Model
 # Available Types to associate with songs are stored here.
 # Types are created and associated with songs in order to have
 # song subsets.  Types can be activated in afkradio to limit
 # the types of songs selected when shuffled (i.e. If only 
-# upbeat songs are desired select the corresponding types
-# and no slow songs will creep in due to shuffle)
+# fast songs are desired select the corresponding types
+# and so slow songs will creep in due to shuffle). Both type
+# selection and type association will be handled by users.
+class TypesManager(models.Manager):
+	def check_if_exists(self, type):
+		try:
+			type_to_check = self.get(types=type)
+			return True
+		except Types.DoesNotExist:
+			raise TypeNotFoundError('The Type with the type ' + type +
+				' does not exist')
+			return False
 
 class Types(models.Model):
 	types = models.CharField(max_length=50)
+	associated_songs = models.ManyToManyField(Songs)
+	objects = TypesManager()
 	
 	@classmethod
 	def add_type(cls, new_type):
@@ -140,16 +175,6 @@ class Types(models.Model):
 	def __unicode__(self):
 		return self.types
 
-# SongToType Model
-# Associate songs to Types to include the song into that
-# type's subset.  Associations will all be done by the users
-# through the web interface or through other modules
-
-class SongToType(models.Model):
-	song = models.ManyToManyField(Songs)
-	associated_types = models.CharField(max_length=50)
-	def __unicode__(self):
-		return self.associated_genres
 
 # class PlayHistory(model.Model):
 
