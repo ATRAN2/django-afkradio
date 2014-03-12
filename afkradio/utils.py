@@ -1,44 +1,87 @@
-from afkradio.models import Songs, Types
-from afkradio.models import MPD_DB_ROOT
+from afkradio.models import Songs, Types, PlayHistory, Playlist
 from afkradio.errors import *
+import json
 import fnmatch
 import os
 import subprocess
 
+APP_ROOT = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(APP_ROOT,'config.json')) as config_file:
+	config_data = json.load(config_file)
+	MPD_DB_ROOT = config_data['MPD DB root']
+	PLAYLIST_SIZE = config_data['Playlist size']
+
 class Playback:
-	def __init__(self):
-		proc = subprocess.Popen(["mpc", "play"], stdout=subprocess.PIPE)
+
+	# mpc_run is the main Playback method that will run mpc, and keep it
+	# persistently listening to commands with mpc idle
+	@staticmethod
+	def mpc_run(init=True):
+		if init:
+			for song_count in PLAYLIST_SIZE:
+				random_song = Songs.get_random()
+				Playlist.add_song(random_song.id)
+				mpc_add(random_song.filepath)
+		mpc_play()
+		# Add played song to PlayHistory
+		PlayHistory.add_song(Playlist.current_song().song_id, timezone.now())
+		proc = subprocess.Popen(["mpc", "idle"], stdout=subprocess.PIPE)
+		line = proc.stdout.readline()
+		while True:
+			if line == '':
+				continue
+			else:
+				if line == 'player':
+					check_state = subprocess.Popen(["mpc"], stdout=subprocess.PIPE)
+					state_line = check_state.stdout.readline()
+					if state_line.startswith('volume: n/a   repeat:'):
+						return
+					else:
+						Playlist.current_song().delete()
+						PlayHistory.add_song(Playlist.current_song().song_id, timezone.now())
+						random_song = Songs.get_random()
+						Playlist.add_song(random_song.id)
+						mpc_delete(1)
+						mpc_add(random_song.filepath)
+						mpc_run(False)
+				elif line == 'playlist':
+					print 'Placeholder'
 
 
 	@staticmethod
 	def mpc_play():
-		proc = subprocess.Popen(["mpc", "play"], stdout=subprocess.PIPE)
+		proc = subprocess.Popen(["mpc", "play"])
 		return "Played mpc"
 
 	@staticmethod
 	def mpc_stop():
-		proc = subprocess.Popen(["mpc", "stop"], stdout=subprocess.PIPE)
+		proc = subprocess.Popen(["mpc", "stop"])
 		return "Stopped mpc"
 
 	@staticmethod 
 	def mpc_clear():
-		proc = subprocess.Popen(["mpc", "clear"], stdout=subprocess.PIPE)
+		proc = subprocess.Popen(["mpc", "clear"])
 		return "Cleared mpc playlist"
 
 	@staticmethod 
 	def mpc_crop():
-		proc = subprocess.Popen(["mpc", "crop"], stdout=subprocess.PIPE)
+		proc = subprocess.Popen(["mpc", "crop"])
 		return "Cleared mpc playlist except currently playing song"
 
 	@staticmethod
 	def mpc_update():
-		proc = subprocess.Popen(["mpc", "update"], stdout=subprocess.PIPE)
+		proc = subprocess.Popen(["mpc", "update"])
 		return "Scanned MPD root and updated MPD db (NOT models.Songs DB)"
 
 	@staticmethod
 	def mpc_add(song_path):
 		proc = subprocess.Popen(["mpc", "add", song_path])
 		return "Added " + song_path + " to the playlist"
+
+	@staticmethod
+	def mpc_delete(song_position=1):
+		proc = subprocess.Popen(["mpc", "del", song_position])
+		return "Deleted the song in position " + song_position + " of the playlist"
 
 	@staticmethod
 	def mpc_currently_playing():
@@ -62,6 +105,9 @@ class Database:
 		dupe_list = []
 		matches = []
 		supported_file_types = ('mp3', 'ogg', 'flac')
+		if MPD_DB_ROOT == '':
+			raise MPDRootNotFound()
+			return
 		for root, dirs, files in os.walk(MPD_DB_ROOT):
 			for extension in supported_file_types:
 				for filename in fnmatch.filter(files, '*.' + extension):
@@ -103,4 +149,16 @@ class Database:
 		else:
 			return song_id
 		type_to_dissociate.associated_songs.remove(song_to_dissociate)
+	
+class Config:
+	# Edits config.json file with new values. Takes a list that has values that
+	# correspong to: [MPD db root, ]
+	@staticmethod
+	def config_write(new_config):
+		# Set default values
+		if new_config[0] == '':
+			return	
+	
+
+	
 

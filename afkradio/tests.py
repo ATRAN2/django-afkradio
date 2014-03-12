@@ -1,7 +1,7 @@
 from django.test import TestCase
 from afkradio.models import Songs, Types
 from django.utils import timezone
-from afkradio.utils import Playback, Database
+from afkradio.utils import Playback, Database, Playlist, PlayHistory
 from afkradio.errors import *
 import datetime
 import time
@@ -17,10 +17,7 @@ class ModelSongsMethodTests(TestCase):
 		"""
 		Songs.add_song_exiftool("Test Path/test.mp3", "Test_Extra")
 		new_song = Songs.objects.get(year='1111')
-		self.assertEqual(
-				timezone.now()-datetime.timedelta(seconds=5) < new_song.date_added,
-				True
-				)
+		self.assertTrue(timezone.now()-datetime.timedelta(seconds=5) < new_song.date_added)
 		metadata_dict = {
 				'Test_Title' : 'title',
 				'Test_Artist' : 'artist',
@@ -120,6 +117,72 @@ class ModelTypesMethodTests(TestCase):
 			['<Types: remove_test2>'])
 		Types.remove_type('remove_test2')
 		self.assertQuerysetEqual(Types.objects.all(),[])
+
+class PlayHistoryMethodTests(TestCase):
+	def test_add_song(self):
+		PlayHistory.add_song('1', timezone.now())
+		PlayHistory.add_song('2', timezone.now())
+		new_song1 = PlayHistory.objects.get(song_id=1)
+		self.assertTrue(timezone.now()-datetime.timedelta(seconds=5) < new_song1.played_time)
+		self.assertQuerysetEqual(list(PlayHistory.objects.all()),
+			['<PlayHistory: 1>', '<PlayHistory: 2>',])
+
+class ModelPlaylistMethodTests(TestCase):
+	def test_current_song_no_user_requested(self):
+		Playlist.add_song('1')
+		Playlist.add_song('2')
+		Playlist.add_song('3')
+		self.assertEqual(Playlist.objects.current_song().song_id, '1')
+
+	def test_current_song_only_user_requested(self):
+		Playlist.add_song('1', True)
+		Playlist.add_song('2', True)
+		Playlist.add_song('3', True)
+		self.assertEqual(Playlist.objects.current_song().song_id, '1')
+
+	def test_current_song_both_non_requested_and_one_requested(self):
+		Playlist.add_song('1')
+		Playlist.add_song('2')
+		Playlist.add_song('3')
+		Playlist.add_song('4', True)
+		self.assertEqual(Playlist.objects.current_song().song_id, '4')
+
+	def test_current_song_both_non_requested_and_requested(self):
+		Playlist.add_song('1')
+		Playlist.add_song('2')
+		Playlist.add_song('3')
+		Playlist.add_song('4', True)
+		Playlist.add_song('5', True)
+		Playlist.add_song('6', True)
+		self.assertEqual(Playlist.objects.current_song().song_id, '4')
+
+	def test_next_song_no_user_requested(self):
+		Playlist.add_song('1')
+		Playlist.add_song('2')
+		Playlist.add_song('3')
+		self.assertEqual(Playlist.objects.next_song().song_id, '2')
+
+	def test_next_song_only_user_requested(self):
+		Playlist.add_song('1', True)
+		Playlist.add_song('2', True)
+		Playlist.add_song('3', True)
+		self.assertEqual(Playlist.objects.next_song().song_id, '2')
+
+	def test_next_song_both_non_requested_and_one_requested(self):
+		Playlist.add_song('1')
+		Playlist.add_song('2')
+		Playlist.add_song('3')
+		Playlist.add_song('4', True)
+		self.assertEqual(Playlist.objects.next_song().song_id, '1')
+
+	def test_next_song_both_non_requested_and_requested(self):
+		Playlist.add_song('1')
+		Playlist.add_song('2')
+		Playlist.add_song('3')
+		Playlist.add_song('4', True)
+		Playlist.add_song('5', True)
+		Playlist.add_song('6', True)
+		self.assertEqual(Playlist.objects.next_song().song_id, '5')
 
 # class UtilPlaybackMethodTests(TestCase):
 # 	def test_mpc_play(self):

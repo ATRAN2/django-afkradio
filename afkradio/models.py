@@ -1,11 +1,16 @@
 from django.db import models
 from django.utils import timezone
 from afkradio.errors import *
+import json
 import os
 import subprocess
 
-MPD_DB_ROOT = '/home/reinforce/music/'
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
+
+with open(os.path.join(APP_ROOT,'config.json')) as config_file:
+	config_data = json.load(config_file)
+	MPD_DB_ROOT = config_data['MPD DB root']
+
 
 # Songs Model
 # Store Songs as well as their metadata here
@@ -42,6 +47,11 @@ class SongsManager(models.Manager):
 			raise SongNotFoundError('The song with the id ' + song_id +
 				' does not exist')
 			return False
+	
+	def get_random(self):
+		last = self.count() - 1
+		index = randint(0, last)
+		return self.all()[index]
 
 class Songs(models.Model):
 	title = models.CharField(max_length=200, blank=True)
@@ -52,6 +62,8 @@ class Songs(models.Model):
 	filepath = models.CharField(max_length=500, blank=True)
 	date_added = models.DateTimeField('Date Added', null=True, blank=True)
 	extra = models.CharField(max_length=500, blank=True)
+	times_played = models.PositiveIntegerField(default=0)
+	times_faved = models.PositiveIntegerField(default=0)
 	objects = SongsManager()
 
 	# add_song_exiftool method
@@ -60,6 +72,10 @@ class Songs(models.Model):
 	# metadata
 	@classmethod
 	def add_song_exiftool(cls, rel_song_path, extra=None):
+		# First check if MPD Root is set
+		if MPD_DB_ROOT == '':
+			raise MPDRootNotFound()
+			return
 		# Get absolute path of song
 		abs_song_path = os.path.join(MPD_DB_ROOT, rel_song_path)
 		# First check if the file is a duplicate
@@ -99,7 +115,10 @@ class Songs(models.Model):
 				exiftool_metadata_contents = line[(colon_index+2):-1]
 				file_type = exiftool_metadata_contents
 				if file_type not in supported_file_types:
-					raise FileTypeError('Not a supported file type. "' + file_type + '" is not ' + str(supported_file_types))
+					raise FileTypeError(
+						'Not a supported file type. "' + file_type + '" is not ' 
+						+ str(supported_file_types)
+					)
 					return abs_file_path
 			elif line !='':
 				# Get any metadata we can find from the song that's one of the
@@ -114,6 +133,9 @@ class Songs(models.Model):
 			else:
 				break
 		# exiftool has (approx) after duration.  Let's get rid of it
+		if new_song.artist == 'volume: n/a   repeat:':
+			return "'volume: n/a   repeat:' is an invalid artist.  " + \
+					"Please don't try to break the stream"
 		if new_song.duration is not None:
 			new_song.duration = new_song.duration[0:7]
 		# Add file path data
@@ -175,7 +197,63 @@ class Types(models.Model):
 	def __unicode__(self):
 		return self.types
 
+class Timer(models.Model):
+	function = models.CharField(max_length=50)
+	user = models.CharField(max_length=75, blank=True)
+	votes = models.CharField(max_length=5, blank=True)
+	create_time = models.DateTimeField('Create time')
+	expire_time = models.DateTimeField('Expire time')
 
-# class PlayHistory(model.Model):
+class PlayHistory(models.Model):
+	song_id = models.CharField(max_length=16)
+	played_time = models.DateTimeField('Time Played')
+	
+	@classmethod
+	def add_song(cls, new_song_id, set_played_time):
+		new_song = cls(song_id = new_song_id, played_time = set_played_time)
+		new_song.save()
 
-# class Playlist(model.Model):
+	def __unicode__(self):
+		return self.song_id
+
+class PlaylistManager(models.Manager):
+	def current_song(self):
+		# Precedence to user_requested songs
+		sort_oldest = self.filter(user_requested=True).order_by('add_time')
+		if not sort_oldest:
+			sort_oldest = self.filter(user_requested=False).order_by('add_time')
+		next_song = sort_oldest[0]
+		return next_song
+
+	def next_song(self):
+		# Precedence to user_requested songs
+		sort_oldest = self.filter(user_requested=True).order_by('add_time')
+		# Next song is the one after the current
+		next_index = 1
+		# If there are no requested songs or if there is only one
+		if sort_oldest.count() <= 1:
+			next_index = 0
+			if not sort_oldest:
+				next_index = 1
+			sort_oldest = self.filter(user_requested=False).order_by('add_time')
+		next_song = sort_oldest[next_index]
+		return next_song
+
+class Playlist(models.Model):
+	song_id = models.CharField(max_length=16)
+	add_time = models.DateTimeField('Add Time')
+	user_requested = models.BooleanField(default=False)
+	objects = PlaylistManager()
+	
+	@classmethod
+	def add_song(cls, new_song_id, requested=False):
+		new_song = cls(
+				song_id = new_song_id,
+				add_time = timezone.now(),
+				user_requested = requested,
+				)
+		new_song.save()
+	
+	def __unicode__(self):
+		return self.song_id
+
