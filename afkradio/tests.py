@@ -60,6 +60,32 @@ class ModelSongsMethodTests(TestCase):
 			Songs.add_song_exiftool("Test Path/test.mp3", "Test_Extra")
 		self.assertQuerysetEqual(Songs.objects.all(), ['<Songs: Test_Title>'])
 
+	def test_check_if_exists(self):
+		Songs.add_song_exiftool("Test Path/test.mp3", "Test_Extra")
+		self.assertTrue(Songs.objects.check_if_exists("Test_Title", 'title'))
+		self.assertTrue(Songs.objects.check_if_exists("Test_Artist", 'artist'))
+		with self.assertRaises(SongNotFoundError):
+			Songs.objects.check_if_exists("Test_Album", 'extra')
+		with self.assertRaises(SongNotFoundError):
+			Songs.objects.check_if_exists("2222", 'year')
+		with self.assertRaises(FieldNotFoundError):
+			Songs.objects.check_if_exists("95328", 'NotAValidField')
+
+	def test_check_if_id_exists(self):
+		Songs.add_song_exiftool("Test Path/test.mp3", "Test_Extra")
+		self.assertTrue(Songs.objects.check_if_id_exists("1"))
+		with self.assertRaises(SongNotFoundError):
+			Songs.objects.check_if_id_exists("2")
+
+	def test_get_random(self):
+		with self.assertRaises(FieldNotFoundError):
+			Songs.objects.get_random()
+		Database.update_songs_db()
+		random_song = Songs.objects.get_random()
+		self.assertTrue(Songs.objects.check_if_id_exists(random_song.id))
+
+
+
 class ModelTypesMethodTests(TestCase):
 	def test_add_type(self):
 		"""
@@ -211,39 +237,18 @@ class ModelPlaylistMethodTests(TestCase):
 #		self.assertTrue(currently_playing, 'Test_Artist - Test_Title')
 
 class UtilDatabaseMethodTests(TestCase):
-# 	def test_update_database(self):
-# 		"""
-# 		Tests the update_database method that finds all .mp3, .ogg, .flac
-# 		files in the MPD root recursively and adds it to the Songs database
-# 		"""
-# 		Database.update_songs_db()
-# 		test_song = Songs.objects.get(filepath='Test Path/test.mp3')
-# 		self.assertEqual(test_song.album, "Test_Album")
-# 		self.assertTrue(Songs.objects.count() >= 3)
-# 
-# 	def test_update_database_dupe(self):
-# 		"""
-# 		Tests if the update_database method ignores duplicate files
-# 		"""
-# 		Database.update_songs_db()
-# 		first_update_songs_count = Songs.objects.count()
-# 		dupe_list = Database.update_songs_db()
-# 		self.assertFalse(dupe_list == [])
-# 		self.assertEqual(Songs.objects.count(), first_update_songs_count)
-# 
-# 	def test_update_database_mpc_add_mpc_play(self):
-# 		"""
-# 		Add songs to songs db with Database.update_songs_db(), then add a song to 
-# 		songs db with mpc_add
-# 		"""
-# 		Database.update_songs_db()
-# 		test_song = Songs.objects.get(filepath='Test Path/test.mp3')
-# 		Playback.mpc_clear()
-# 		Playback.mpc_add(test_song.filepath)
-# 		Playback.mpc_play()
-# 		time.sleep(2)
-# 		currently_playing = Playback.mpc_currently_playing()
-# 		self.assertTrue(currently_playing, 'Test_Artist - Test_Song')
+	def test_update_songs_db(self):
+		"""
+		Tests the update_songs_model method, also checks if it ignores duplicate files
+		"""
+		self.assertQuerysetEqual(Songs.objects.all(), [])
+		dupe_list = Database.update_songs_db()
+		self.assertTrue(dupe_list == [])
+		first_update_songs_count = Songs.objects.count()
+		dupe_list = Database.update_songs_db()
+		self.assertFalse(dupe_list == [])
+		self.assertEqual(Songs.objects.count(), first_update_songs_count)
+
 
 	def test_associate_type_to_song(self):
 		Types.add_type('test_type')
@@ -355,3 +360,38 @@ class UtilDatabaseMethodTests(TestCase):
 		self.assertQuerysetEqual(
 			list(Songs.objects.get(title='Test_Title').types_set.all()), [])
 
+# class UtilControlMethodTests(TestCase):
+# 	def test_update_db(self):
+# 		"""
+# 		Tests the update_database method that finds all .mp3, .ogg, .flac
+# 		files in the MPD root recursively and adds it to the Songs database
+# 		"""
+# 		Control.scan_for_songs()
+# 		test_song = Songs.objects.get(filepath='Test Path/test.mp3')
+# 		self.assertEqual(test_song.album, "Test_Album")
+# 		self.assertTrue(Songs.objects.count() >= 3)
+# 
+# 	def test_update_db_dupe(self):
+# 		"""
+# 		Tests if the update_database method ignores duplicate files
+# 		"""
+# 		Control.scan_for_songs()
+# 		first_update_songs_count = Songs.objects.count()
+# 		dupe_list = Control.scan_for_songs()
+# 		self.assertFalse(dupe_list == [])
+# 		self.assertEqual(Songs.objects.count(), first_update_songs_count)
+# 
+# 	def test_update_db_mpc_add_mpc_play(self):
+# 		"""
+# 		Add songs to songs db with Control.scan_for_songs(), then add a song to 
+# 		songs db with mpc_add
+# 		"""
+# 		Control.scan_for_songs()
+# 		test_song = Songs.objects.get(filepath='Test Path/test.mp3')
+# 		Playback.mpc_clear()
+# 		Playback.mpc_add(test_song.filepath)
+# 		Playback.mpc_play()
+# 		time.sleep(2)
+# 		currently_playing = Playback.mpc_currently_playing()
+# 		self.assertTrue(currently_playing, 'Test_Artist - Test_Song')
+# 

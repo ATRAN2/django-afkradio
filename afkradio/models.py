@@ -1,6 +1,8 @@
 from django.db import models
 from django.utils import timezone
 from afkradio.errors import *
+from django.core.exceptions import FieldError
+import random
 import json
 import os
 import subprocess
@@ -28,14 +30,14 @@ with open(os.path.join(APP_ROOT,'config.json')) as config_file:
 class SongsManager(models.Manager):
 	def check_if_exists(self, song_query, field=id):
 		try: 
-			song_check = self.filter(field=song_query)
+			song_check = self.filter(**{field:song_query})
 		except FieldError:
-			raise FieldDoesNotExistError('The field ' + field + ' does not exist in the Songs model')
+			raise FieldNotFoundError('The field ' + field + ' does not exist in the Songs model')
 			return False
-		if song_check is not []:
+		if song_check:
 			return True
 		else:
-			raise SongDoesNotExistError('The song with the ' + field + ' ' + song_query +
+			raise SongNotFoundError('The song with the ' + field + ' ' + song_query +
 				' does not exist')
 			return False
 	
@@ -49,9 +51,15 @@ class SongsManager(models.Manager):
 			return False
 	
 	def get_random(self):
-		last = self.count() - 1
-		index = randint(0, last)
-		return self.all()[index]
+		if self.count():
+			last = self.count() - 1
+			index = random.randint(0, last)
+			return self.all()[index]
+		else:
+			raise FieldNotFoundError( 'There are no songs in the database yet. Please click ' + \
+				'Update Database in the admin panel or run Control.scan_for_songs() in ' + \
+				' afkradio.utils from the shell' )
+			return False
 
 class Songs(models.Model):
 	title = models.CharField(max_length=200, blank=True)
@@ -238,6 +246,13 @@ class PlaylistManager(models.Manager):
 			sort_oldest = self.filter(user_requested=False).order_by('add_time')
 		next_song = sort_oldest[next_index]
 		return next_song
+
+	def clear_playlist_full(self):
+		self.all().delete()
+
+	def clear_playlist_retain_requested(self):
+		self.filter(user_requested=False).delete()
+		
 
 class Playlist(models.Model):
 	song_id = models.CharField(max_length=16)

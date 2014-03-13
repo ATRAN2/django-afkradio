@@ -11,76 +11,52 @@ with open(os.path.join(APP_ROOT,'config.json')) as config_file:
 	MPD_DB_ROOT = config_data['MPD DB root']
 	PLAYLIST_SIZE = config_data['Playlist size']
 
+check_os = os.name
+if check_os == 'posix':
+	NULL_DEVICE = open('/dev/null', 'w')
+elif check_os == 'nt':
+	NULL_DEVICE = open('nul', 'w')
+else:
+	print 'Not a supported system'
+	exit()
+		
+
+
 class Playback:
-
-	# mpc_run is the main Playback method that will run mpc, and keep it
-	# persistently listening to commands with mpc idle
-	@staticmethod
-	def mpc_run(init=True):
-		if init:
-			for song_count in PLAYLIST_SIZE:
-				random_song = Songs.get_random()
-				Playlist.add_song(random_song.id)
-				mpc_add(random_song.filepath)
-		mpc_play()
-		# Add played song to PlayHistory
-		PlayHistory.add_song(Playlist.current_song().song_id, timezone.now())
-		proc = subprocess.Popen(["mpc", "idle"], stdout=subprocess.PIPE)
-		line = proc.stdout.readline()
-		while True:
-			if line == '':
-				continue
-			else:
-				if line == 'player':
-					check_state = subprocess.Popen(["mpc"], stdout=subprocess.PIPE)
-					state_line = check_state.stdout.readline()
-					if state_line.startswith('volume: n/a   repeat:'):
-						return
-					else:
-						Playlist.current_song().delete()
-						PlayHistory.add_song(Playlist.current_song().song_id, timezone.now())
-						random_song = Songs.get_random()
-						Playlist.add_song(random_song.id)
-						mpc_delete(1)
-						mpc_add(random_song.filepath)
-						mpc_run(False)
-				elif line == 'playlist':
-					print 'Placeholder'
-
 
 	@staticmethod
 	def mpc_play():
-		proc = subprocess.Popen(["mpc", "play"])
+		proc = subprocess.Popen(["mpc", "play"], stdout=NULL_DEVICE).wait()
 		return "Played mpc"
 
 	@staticmethod
 	def mpc_stop():
-		proc = subprocess.Popen(["mpc", "stop"])
+		proc = subprocess.Popen(["mpc", "stop"], stdout=NULL_DEVICE).wait()
 		return "Stopped mpc"
 
 	@staticmethod 
 	def mpc_clear():
-		proc = subprocess.Popen(["mpc", "clear"])
+		proc = subprocess.Popen(["mpc", "clear"], stdout=NULL_DEVICE).wait()
 		return "Cleared mpc playlist"
 
 	@staticmethod 
 	def mpc_crop():
-		proc = subprocess.Popen(["mpc", "crop"])
+		proc = subprocess.Popen(["mpc", "crop"], stdout=NULL_DEVICE).wait()
 		return "Cleared mpc playlist except currently playing song"
 
 	@staticmethod
 	def mpc_update():
-		proc = subprocess.Popen(["mpc", "update"])
+		proc = subprocess.Popen(["mpc", "update"], stdout=NULL_DEVICE).wait()
 		return "Scanned MPD root and updated MPD db (NOT models.Songs DB)"
 
 	@staticmethod
 	def mpc_add(song_path):
-		proc = subprocess.Popen(["mpc", "add", song_path])
+		proc = subprocess.Popen(["mpc", "add", song_path], stdout=NULL_DEVICE).wait()
 		return "Added " + song_path + " to the playlist"
 
 	@staticmethod
 	def mpc_delete(song_position=1):
-		proc = subprocess.Popen(["mpc", "del", song_position])
+		proc = subprocess.Popen(["mpc", "del", song_position], stdout=NULL_DEVICE).wait()
 		return "Deleted the song in position " + song_position + " of the playlist"
 
 	@staticmethod
@@ -101,13 +77,12 @@ class Database:
 
 	@staticmethod
 	def update_songs_db():
-		Playback.mpc_update()
 		dupe_list = []
 		matches = []
 		supported_file_types = ('mp3', 'ogg', 'flac')
 		if MPD_DB_ROOT == '':
 			raise MPDRootNotFound()
-			return
+			return []
 		for root, dirs, files in os.walk(MPD_DB_ROOT):
 			for extension in supported_file_types:
 				for filename in fnmatch.filter(files, '*.' + extension):
@@ -117,9 +92,8 @@ class Database:
 						Songs.add_song_exiftool(song_path, None)
 					except DuplicateEntryError:
 						dupe_list.append(os.path.join(root, filename))
-		if dupe_list is not []:
-			return dupe_list
-
+		return dupe_list
+		
 	@staticmethod
 	# associate_type_to_song
 	# Associates a Song in Song.models to a Type in Type.models
@@ -149,6 +123,50 @@ class Database:
 		else:
 			return song_id
 		type_to_dissociate.associated_songs.remove(song_to_dissociate)
+
+class Control:
+	@staticmethod
+	def add_random_song():
+		random_song = Songs.objects.get_random()
+		Playlist.add_song(random_song.id)
+		mpc_add(random_song.filepath)
+
+	def scan_for_songs():
+		Playback.mpc_update()
+		dupe_list = Database.update_songs_db()
+		return dupe_list
+
+	# run_stream is the main stream method that will run mpc and keep it
+	# persistently listening to commands with mpc idle
+	@staticmethod
+	def run_stream(init=True):
+		if init:
+			for song_count in PLAYLIST_SIZE:
+				Control.add_random_song()
+		mpc_play()
+		# Add played song to PlayHistory
+		PlayHistory.add_song(Playlist.current_song().song_id, timezone.now())
+		while True:
+			proc = subprocess.Popen(["mpc", "idle"], stdout=subprocess.PIPE)
+			line = proc.stdout.readline()
+			while True:
+				if line == 'player':
+					check_state = subprocess.Popen(["mpc"], stdout=subprocess.PIPE)
+					state_line = check_state.stdout.readline()
+					if state_line.startswith('volume: n/a   repeat:'):
+						return
+					else:
+						Playlist.current_song().delete()
+						PlayHistory.add_song(
+								Playlist.current_song().song_id,
+								timezone.now()
+								)
+						Control.add_random_song()
+						mpc_delete(1)
+						break
+				else:
+					continue
+
 	
 class Config:
 	# Edits config.json file with new values. Takes a list that has values that
