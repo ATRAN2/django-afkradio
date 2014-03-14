@@ -1,7 +1,7 @@
 from django.contrib import admin
-from afkradio.models import Songs
+from afkradio.models import Song
 
-admin.site.register(Songs)
+admin.site.register(Song)
 
 class SongAdmin(admin.ModelAdmin):
 	list_per_page = 20

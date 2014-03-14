@@ -1,5 +1,5 @@
 from django.test import TestCase
-from afkradio.models import Songs, Types
+from afkradio.models import Song, Type
 from django.utils import timezone
 from afkradio.utils import Playback, Database, Playlist, PlayHistory
 from afkradio.errors import *
@@ -9,14 +9,14 @@ import time
 # If you want to run these tests, then please place the folder 'Test Path' located
 # in the app root into your MPD music root folder.
 
-class ModelSongsMethodTests(TestCase):
+class ModelSongMethodTests(TestCase):
 	def test_add_song_exiftool_test_song(self):
 		"""
 		Tests if we can add a new song to the database as well as
 		getting the corresponding metadata using exiftool
 		"""
-		Songs.add_song_exiftool("Test Path/test.mp3", "Test_Extra")
-		new_song = Songs.objects.get(year='1111')
+		Song.add_song_exiftool("Test Path/test.mp3", "Test_Extra")
+		new_song = Song.objects.get(year='1111')
 		self.assertTrue(timezone.now()-datetime.timedelta(seconds=5) < new_song.date_added)
 		metadata_dict = {
 				'Test_Title' : 'title',
@@ -39,8 +39,8 @@ class ModelSongsMethodTests(TestCase):
 		does not exist
 		"""
 		with self.assertRaises(FileNotFoundError):
-			Songs.add_song_exiftool("this folder path/doesn't exist.mp3")
-		self.assertQuerysetEqual(Songs.objects.all(), [])
+			Song.add_song_exiftool("this folder path/doesn't exist.mp3")
+		self.assertQuerysetEqual(Song.objects.all(), [])
 	
 	def test_add_song_exiftool_nonsupported_format(self):
 		"""
@@ -48,118 +48,118 @@ class ModelSongsMethodTests(TestCase):
 		is not a supported file type
 		"""
 		with self.assertRaises(FileTypeError):
-			Songs.add_song_exiftool("Test Path/exiftool")
-		self.assertQuerysetEqual(Songs.objects.all(), [])
+			Song.add_song_exiftool("Test Path/exiftool")
+		self.assertQuerysetEqual(Song.objects.all(), [])
 
 	def test_add_song_exiftool_same_song(self):
 		"""
 		Tests handling of add_song_exiftool() if the same song is added twice
 		"""
-		Songs.add_song_exiftool("Test Path/test.mp3", "Test_Extra")
+		Song.add_song_exiftool("Test Path/test.mp3", "Test_Extra")
 		with self.assertRaises(DuplicateEntryError):
-			Songs.add_song_exiftool("Test Path/test.mp3", "Test_Extra")
-		self.assertQuerysetEqual(Songs.objects.all(), ['<Songs: Test_Title>'])
+			Song.add_song_exiftool("Test Path/test.mp3", "Test_Extra")
+		self.assertQuerysetEqual(Song.objects.all(), ['<Song: Test_Title>'])
 
 	def test_check_if_exists(self):
-		Songs.add_song_exiftool("Test Path/test.mp3", "Test_Extra")
-		self.assertTrue(Songs.objects.check_if_exists("Test_Title", 'title'))
-		self.assertTrue(Songs.objects.check_if_exists("Test_Artist", 'artist'))
+		Song.add_song_exiftool("Test Path/test.mp3", "Test_Extra")
+		self.assertTrue(Song.objects.check_if_exists("Test_Title", 'title'))
+		self.assertTrue(Song.objects.check_if_exists("Test_Artist", 'artist'))
 		with self.assertRaises(SongNotFoundError):
-			Songs.objects.check_if_exists("Test_Album", 'extra')
+			Song.objects.check_if_exists("Test_Album", 'extra')
 		with self.assertRaises(SongNotFoundError):
-			Songs.objects.check_if_exists("2222", 'year')
+			Song.objects.check_if_exists("2222", 'year')
 		with self.assertRaises(FieldNotFoundError):
-			Songs.objects.check_if_exists("95328", 'NotAValidField')
+			Song.objects.check_if_exists("95328", 'NotAValidField')
 
 	def test_check_if_id_exists(self):
-		Songs.add_song_exiftool("Test Path/test.mp3", "Test_Extra")
-		self.assertTrue(Songs.objects.check_if_id_exists("1"))
+		Song.add_song_exiftool("Test Path/test.mp3", "Test_Extra")
+		self.assertTrue(Song.objects.check_if_id_exists("1"))
 		with self.assertRaises(SongNotFoundError):
-			Songs.objects.check_if_id_exists("2")
+			Song.objects.check_if_id_exists("2")
 
 	def test_get_random(self):
 		with self.assertRaises(SongNotFoundError):
-			Songs.objects.get_random()
-		Database.update_songs_db()
-		random_song = Songs.objects.get_random()
-		self.assertTrue(Songs.objects.check_if_id_exists(random_song.id))
+			Song.objects.get_random()
+		Database.update_song_db()
+		random_song = Song.objects.get_random()
+		self.assertTrue(Song.objects.check_if_id_exists(random_song.id))
 
 	def test_get_random_from_active_types(self):
 		with self.assertRaises(SongNotFoundError):
-			Songs.objects.get_random_from_active_types()
-		Database.update_songs_db()
-		Types.add_type('Test_Type1')
-		Types.add_type('Test_Type2')
-		Types.add_type('Test_Type3')
-		Types.objects.activate_type('Test_Type1')
-		Types.objects.activate_type('Test_Type3')
+			Song.objects.get_random_from_active_types()
+		Database.update_song_db()
+		Type.add_type('Test_Type1')
+		Type.add_type('Test_Type2')
+		Type.add_type('Test_Type3')
+		Type.objects.activate_type('Test_Type1')
+		Type.objects.activate_type('Test_Type3')
 		with self.assertRaises(SongNotFoundError):
-			Songs.objects.get_random_from_active_types()
+			Song.objects.get_random_from_active_types()
 		Database.associate_type_to_song('1', 'Test_Type1')
 		Database.associate_type_to_song('2', 'Test_Type1')
 		Database.associate_type_to_song('3', 'Test_Type2')
 		Database.associate_type_to_song('4', 'Test_Type3')
 		Database.associate_type_to_song('5', 'Test_Type3')
-		self.assertTrue(len(Types.objects.song_ids_of_active_types()) == 4)
-		self.assertEqual(Songs.objects.get_random_from_active_types().title, 'Test_Title')
+		self.assertTrue(len(Type.objects.song_ids_of_active_types()) == 4)
+		self.assertEqual(Song.objects.get_random_from_active_types().title, 'Test_Title')
 
-class ModelTypesMethodTests(TestCase):
+class ModelTypeMethodTests(TestCase):
 	def test_add_type(self):
 		"""
 		Test if a new type can be added with add_types() function
 		"""
-		Types.add_type('add_test')
-		self.assertQuerysetEqual(Types.objects.all(),['<Types: add_test>'])
+		Type.add_type('add_test')
+		self.assertQuerysetEqual(Type.objects.all(),['<Type: add_test>'])
 
 	def test_add_type_with_same_entry(self):
 		"""
 		Test if a new type can be added with add_types() function
 		"""
-		Types.add_type('add_test')
-		Types.add_type('add_test')
-		self.assertQuerysetEqual(list(Types.objects.all()),['<Types: add_test>'])
+		Type.add_type('add_test')
+		Type.add_type('add_test')
+		self.assertQuerysetEqual(list(Type.objects.all()),['<Type: add_test>'])
 
 	def test_add_type_multiple_entries(self):
 		"""
 		Test if a new type can be added with add_types() function
 		"""
-		Types.add_type('add_test1')
-		Types.add_type('add_test2')
-		self.assertQuerysetEqual(list(Types.objects.all()),
-			['<Types: add_test1>', '<Types: add_test2>',])
+		Type.add_type('add_test1')
+		Type.add_type('add_test2')
+		self.assertQuerysetEqual(list(Type.objects.all()),
+			['<Type: add_test1>', '<Type: add_test2>',])
 
 	def test_remove_type_single_entry(self):
 		"""
 		Test if a type can be removed with remove_types() function
 		"""
-		Types.add_type('remove_test')
-		self.assertQuerysetEqual(Types.objects.all(),['<Types: remove_test>'])
-		Types.remove_type('remove_test')
-		self.assertQuerysetEqual(Types.objects.all(),[])
+		Type.add_type('remove_test')
+		self.assertQuerysetEqual(Type.objects.all(),['<Type: remove_test>'])
+		Type.remove_type('remove_test')
+		self.assertQuerysetEqual(Type.objects.all(),[])
 
 	def test_remove_type_nonexistant_entry(self):
 		"""
 		Test if a type that doesn't can attempt to be removed with 
 		remove_types() function
 		"""
-		self.assertQuerysetEqual(Types.objects.all(),[])
-		Types.remove_type('remove_test')
-		self.assertQuerysetEqual(Types.objects.all(),[])
+		self.assertQuerysetEqual(Type.objects.all(),[])
+		Type.remove_type('remove_test')
+		self.assertQuerysetEqual(Type.objects.all(),[])
 
 
 	def test_remove_type_multiple_entry(self):
 		"""
 		Test if multiple types can be removed with remove_types() function
 		"""
-		Types.add_type('remove_test1')
-		Types.add_type('remove_test2')
-		self.assertQuerysetEqual(list(Types.objects.all()),
-			['<Types: remove_test1>', '<Types: remove_test2>',])
-		Types.remove_type('remove_test1')
-		self.assertQuerysetEqual(list(Types.objects.all()),
-			['<Types: remove_test2>'])
-		Types.remove_type('remove_test2')
-		self.assertQuerysetEqual(Types.objects.all(),[])
+		Type.add_type('remove_test1')
+		Type.add_type('remove_test2')
+		self.assertQuerysetEqual(list(Type.objects.all()),
+			['<Type: remove_test1>', '<Type: remove_test2>',])
+		Type.remove_type('remove_test1')
+		self.assertQuerysetEqual(list(Type.objects.all()),
+			['<Type: remove_test2>'])
+		Type.remove_type('remove_test2')
+		self.assertQuerysetEqual(Type.objects.all(),[])
 
 class PlayHistoryMethodTests(TestCase):
 	def test_add_song(self):
@@ -254,149 +254,149 @@ class ModelPlaylistMethodTests(TestCase):
 #		self.assertTrue(currently_playing, 'Test_Artist - Test_Title')
 
 class UtilDatabaseMethodTests(TestCase):
-	def test_update_songs_db(self):
+	def test_update_song_db(self):
 		"""
 		Tests the update_songs_model method, also checks if it ignores duplicate files
 		"""
-		self.assertQuerysetEqual(Songs.objects.all(), [])
-		dupe_list = Database.update_songs_db()
+		self.assertQuerysetEqual(Song.objects.all(), [])
+		dupe_list = Database.update_song_db()
 		self.assertTrue(dupe_list == [])
-		first_update_songs_count = Songs.objects.count()
-		dupe_list = Database.update_songs_db()
+		first_update_songs_count = Song.objects.count()
+		dupe_list = Database.update_song_db()
 		self.assertFalse(dupe_list == [])
-		self.assertEqual(Songs.objects.count(), first_update_songs_count)
+		self.assertEqual(Song.objects.count(), first_update_songs_count)
 
 
 	def test_associate_type_to_song(self):
-		Types.add_type('test_type')
-		test_type = Types.objects.get(types='test_type')
-		Songs.add_song_exiftool("Test Path/test.mp3")
-		test_song = Songs.objects.get(title='Test_Title')
-		Database.associate_type_to_song(test_song.id, test_type.types)
+		Type.add_type('test_type')
+		test_type = Type.objects.get(type='test_type')
+		Song.add_song_exiftool("Test Path/test.mp3")
+		test_song = Song.objects.get(title='Test_Title')
+		Database.associate_type_to_song(test_song.id, test_type.type)
 		self.assertQuerysetEqual(
-			list(Types.objects.get(types='test_type').associated_songs.all()),
-			['<Songs: Test_Title>']
+			list(Type.objects.get(type='test_type').associated_songs.all()),
+			['<Song: Test_Title>']
 		)
 		self.assertQuerysetEqual(
-			list(Songs.objects.get(title='Test_Title').types_set.all()),
-			['<Types: test_type>']
+			list(Song.objects.get(title='Test_Title').type_set.all()),
+			['<Type: test_type>']
 		)
 
 	def test_associate_type_to_song_multiple_types_multiple_songs(self):
-		Types.add_type('test_type1')
-		Types.add_type('test_type2')
-		test_type1 = Types.objects.get(types='test_type1')
-		test_type2 = Types.objects.get(types='test_type2')
-		Songs.add_song_exiftool("Test Path/test.mp3")
-		Songs.add_song_exiftool("Test Path/test2.mp3")
-		test_song1 = Songs.objects.get(id=1)
-		test_song2 = Songs.objects.get(id=2)
-		Database.associate_type_to_song(test_song1.id, test_type1.types)
-		Database.associate_type_to_song(test_song1.id, test_type2.types)
-		Database.associate_type_to_song(test_song2.id, test_type1.types)
-		Database.associate_type_to_song(test_song2.id, test_type2.types)
+		Type.add_type('test_type1')
+		Type.add_type('test_type2')
+		test_type1 = Type.objects.get(type='test_type1')
+		test_type2 = Type.objects.get(type='test_type2')
+		Song.add_song_exiftool("Test Path/test.mp3")
+		Song.add_song_exiftool("Test Path/test2.mp3")
+		test_song1 = Song.objects.get(id=1)
+		test_song2 = Song.objects.get(id=2)
+		Database.associate_type_to_song(test_song1.id, test_type1.type)
+		Database.associate_type_to_song(test_song1.id, test_type2.type)
+		Database.associate_type_to_song(test_song2.id, test_type1.type)
+		Database.associate_type_to_song(test_song2.id, test_type2.type)
 		self.assertQuerysetEqual(
-			list(Types.objects.get(types='test_type1').associated_songs.all()),
-			['<Songs: Test_Title>', '<Songs: Test_Title>',]
+			list(Type.objects.get(type='test_type1').associated_songs.all()),
+			['<Song: Test_Title>', '<Song: Test_Title>',]
 		)
 		self.assertQuerysetEqual(
-			list(Types.objects.get(types='test_type2').associated_songs.all()),
-			['<Songs: Test_Title>', '<Songs: Test_Title>',]
+			list(Type.objects.get(type='test_type2').associated_songs.all()),
+			['<Song: Test_Title>', '<Song: Test_Title>',]
 		)
 		self.assertQuerysetEqual(
-			list(Songs.objects.get(id=1).types_set.all()),
-			['<Types: test_type1>', '<Types: test_type2>',]
+			list(Song.objects.get(id=1).type_set.all()),
+			['<Type: test_type1>', '<Type: test_type2>',]
 		)
 		self.assertQuerysetEqual(
-			list(Songs.objects.get(id=2).types_set.all()),
-			['<Types: test_type1>', '<Types: test_type2>',]
+			list(Song.objects.get(id=2).type_set.all()),
+			['<Type: test_type1>', '<Type: test_type2>',]
 		)
 
 	def test_associate_type_to_song_missing_type(self):
 		nonexistant_type = 'no_type'
-		Songs.add_song_exiftool("Test Path/test.mp3")
-		test_song = Songs.objects.get(title='Test_Title')
+		Song.add_song_exiftool("Test Path/test.mp3")
+		test_song = Song.objects.get(title='Test_Title')
 		with self.assertRaises(TypeNotFoundError):
 			Database.associate_type_to_song(test_song.id, nonexistant_type)
 
 	def test_associate_type_to_song_missing_song(self):
-		Types.add_type('test_type')
-		test_type = Types.objects.get(types='test_type')
+		Type.add_type('test_type')
+		test_type = Type.objects.get(type='test_type')
 		nonexistant_song_id = '33333'
 		with self.assertRaises(SongNotFoundError):
-			Database.associate_type_to_song(nonexistant_song_id, test_type.types)
+			Database.associate_type_to_song(nonexistant_song_id, test_type.type)
 
 
 	def test_dissociate_type_to_song(self):
-		Types.add_type('test_type1')
-		Types.add_type('test_type2')
-		test_type1 = Types.objects.get(types='test_type1')
-		test_type2 = Types.objects.get(types='test_type2')
-		Songs.add_song_exiftool("Test Path/test.mp3")
-		Songs.add_song_exiftool("Test Path/test2.mp3")
-		test_song1 = Songs.objects.get(id=1)
-		test_song2 = Songs.objects.get(id=2)
-		Database.associate_type_to_song(test_song1.id, test_type1.types)
-		Database.associate_type_to_song(test_song1.id, test_type2.types)
-		Database.associate_type_to_song(test_song2.id, test_type1.types)
-		Database.associate_type_to_song(test_song2.id, test_type2.types)
+		Type.add_type('test_type1')
+		Type.add_type('test_type2')
+		test_type1 = Type.objects.get(type='test_type1')
+		test_type2 = Type.objects.get(type='test_type2')
+		Song.add_song_exiftool("Test Path/test.mp3")
+		Song.add_song_exiftool("Test Path/test2.mp3")
+		test_song1 = Song.objects.get(id=1)
+		test_song2 = Song.objects.get(id=2)
+		Database.associate_type_to_song(test_song1.id, test_type1.type)
+		Database.associate_type_to_song(test_song1.id, test_type2.type)
+		Database.associate_type_to_song(test_song2.id, test_type1.type)
+		Database.associate_type_to_song(test_song2.id, test_type2.type)
 		self.assertQuerysetEqual(
-			list(Types.objects.get(types='test_type1').associated_songs.all()),
-			['<Songs: Test_Title>', '<Songs: Test_Title>',]
+			list(Type.objects.get(type='test_type1').associated_songs.all()),
+			['<Song: Test_Title>', '<Song: Test_Title>',]
 		)
 		self.assertQuerysetEqual(
-			list(Songs.objects.get(id=1).types_set.all()),
-			['<Types: test_type1>', '<Types: test_type2>',]
+			list(Song.objects.get(id=1).type_set.all()),
+			['<Type: test_type1>', '<Type: test_type2>',]
 		)
-		Database.dissociate_type_to_song(test_song1.id, test_type1.types)
+		Database.dissociate_type_to_song(test_song1.id, test_type1.type)
 		self.assertQuerysetEqual(
-			list(Types.objects.get(types='test_type1').associated_songs.all()),
-			['<Songs: Test_Title>',]
-		)
-		self.assertQuerysetEqual(
-			list(Songs.objects.get(id=1).types_set.all()),
-			['<Types: test_type2>',]
+			list(Type.objects.get(type='test_type1').associated_songs.all()),
+			['<Song: Test_Title>',]
 		)
 		self.assertQuerysetEqual(
-			list(Types.objects.get(types='test_type2').associated_songs.all()),
-			['<Songs: Test_Title>', '<Songs: Test_Title>',]
+			list(Song.objects.get(id=1).type_set.all()),
+			['<Type: test_type2>',]
 		)
 		self.assertQuerysetEqual(
-			list(Songs.objects.get(id=2).types_set.all()),
-			['<Types: test_type1>', '<Types: test_type2>',]
+			list(Type.objects.get(type='test_type2').associated_songs.all()),
+			['<Song: Test_Title>', '<Song: Test_Title>',]
+		)
+		self.assertQuerysetEqual(
+			list(Song.objects.get(id=2).type_set.all()),
+			['<Type: test_type1>', '<Type: test_type2>',]
 		)
 
 	def test_dissociate_type_to_song_not_associated(self):
-		Types.add_type('test_type')
-		test_type = Types.objects.get(types='test_type')
-		Songs.add_song_exiftool("Test Path/test.mp3")
-		test_song = Songs.objects.get(title='Test_Title')
-		Database.dissociate_type_to_song(test_song.id, test_type.types)
+		Type.add_type('test_type')
+		test_type = Type.objects.get(type='test_type')
+		Song.add_song_exiftool("Test Path/test.mp3")
+		test_song = Song.objects.get(title='Test_Title')
+		Database.dissociate_type_to_song(test_song.id, test_type.type)
 		self.assertQuerysetEqual(
-			list(Types.objects.get(types='test_type').associated_songs.all()),[])
+			list(Type.objects.get(type='test_type').associated_songs.all()),[])
 		self.assertQuerysetEqual(
-			list(Songs.objects.get(title='Test_Title').types_set.all()), [])
+			list(Song.objects.get(title='Test_Title').type_set.all()), [])
 
 # class UtilControlMethodTests(TestCase):
 # 	def test_update_db(self):
 # 		"""
 # 		Tests the update_database method that finds all .mp3, .ogg, .flac
-# 		files in the MPD root recursively and adds it to the Songs database
+# 		files in the MPD root recursively and adds it to the Song database
 # 		"""
 # 		Control.scan_for_songs()
-# 		test_song = Songs.objects.get(filepath='Test Path/test.mp3')
+# 		test_song = Song.objects.get(filepath='Test Path/test.mp3')
 # 		self.assertEqual(test_song.album, "Test_Album")
-# 		self.assertTrue(Songs.objects.count() >= 3)
+# 		self.assertTrue(Song.objects.count() >= 3)
 # 
 # 	def test_update_db_dupe(self):
 # 		"""
 # 		Tests if the update_database method ignores duplicate files
 # 		"""
 # 		Control.scan_for_songs()
-# 		first_update_songs_count = Songs.objects.count()
+# 		first_update_songs_count = Song.objects.count()
 # 		dupe_list = Control.scan_for_songs()
 # 		self.assertFalse(dupe_list == [])
-# 		self.assertEqual(Songs.objects.count(), first_update_songs_count)
+# 		self.assertEqual(Song.objects.count(), first_update_songs_count)
 # 
 # 	def test_update_db_mpc_add_mpc_play(self):
 # 		"""
@@ -404,7 +404,7 @@ class UtilDatabaseMethodTests(TestCase):
 # 		songs db with mpc_add
 # 		"""
 # 		Control.scan_for_songs()
-# 		test_song = Songs.objects.get(filepath='Test Path/test.mp3')
+# 		test_song = Song.objects.get(filepath='Test Path/test.mp3')
 # 		Playback.mpc_clear()
 # 		Playback.mpc_add(test_song.filepath)
 # 		Playback.mpc_play()

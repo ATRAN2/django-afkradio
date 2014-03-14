@@ -27,7 +27,7 @@ with open(os.path.join(APP_ROOT,'config.json')) as config_file:
 # 	then filepath would be '/album/artist/example.mp3'
 # date_added is the date the song was added to the database
 # extra is for any other extra data or tags to aid in searching
-class SongsManager(models.Manager):
+class SongManager(models.Manager):
 	def check_if_exists(self, song_query, field=id):
 		try: 
 			song_check = self.filter(**{field:song_query})
@@ -45,7 +45,7 @@ class SongsManager(models.Manager):
 		try:
 			self.get(id=song_id)
 			return True
-		except Songs.DoesNotExist:
+		except Song.DoesNotExist:
 			raise SongNotFoundError('The song with the id ' + song_id +
 				' does not exist')
 			return False
@@ -62,7 +62,7 @@ class SongsManager(models.Manager):
 			return False
 
 	def get_random_from_active_types(self):
-		active_songs = list(Types.objects.song_ids_of_active_types())
+		active_songs = list(Type.objects.song_ids_of_active_types())
 		if not active_songs or not active_songs[0]:
 			raise SongNotFoundError( 'There are no songs associated to the active types' )
 			return False
@@ -73,7 +73,7 @@ class SongsManager(models.Manager):
 			return self.get(id=random_active_song_id)
 
 
-class Songs(models.Model):
+class Song(models.Model):
 	title = models.CharField(max_length=200, blank=True)
 	artist = models.CharField(max_length=200, blank=True)
 	album = models.CharField(max_length=200, blank=True)
@@ -84,10 +84,7 @@ class Songs(models.Model):
 	extra = models.CharField(max_length=500, blank=True)
 	times_played = models.PositiveIntegerField(default=0)
 	times_faved = models.PositiveIntegerField(default=0)
-	objects = SongsManager()
-
-	class Meta:
-		verbose_name_plural ='Songs'
+	objects = SongManager()
 
 	# add_song_exiftool method
 	# Given the song path relative MPD_DB_ROOT, runs exiftool
@@ -184,25 +181,25 @@ class Songs(models.Model):
 # fast songs are desired select the corresponding types
 # and so slow songs will creep in due to shuffle). Both type
 # selection and type association will be handled by users.
-class TypesManager(models.Manager):
-	def check_if_exists(self, type):
+class TypeManager(models.Manager):
+	def check_if_exists(self, check_type):
 		try:
-			type_to_check = self.get(types=type)
+			type_to_check = self.get(type=check_type)
 			return True
-		except Types.DoesNotExist:
-			raise TypeNotFoundError('The Type with the type ' + type +
+		except Type.DoesNotExist:
+			raise TypeNotFoundError('The Type with the type ' + check_type + \
 				' does not exist')
 			return False
 
-	def activate_type(self, type):
-		if self.check_if_exists(type):
-			type_to_activate = self.get(types=type)
+	def activate_type(self, type_to_activate):
+		if self.check_if_exists(type_to_activate):
+			type_to_activate = self.get(type=type_to_activate)
 			type_to_activate.active = True
 			type_to_activate.save()
 
-	def deactivate_type(self, type):
+	def deactivate_type(self, type_to_deactivate):
 		if self.check_if_exists(type):
-			type_to_deactivate = self.get(types=type)
+			type_to_deactivate = self.get(type=type_to_deactivate)
 			type_to_deactivate.active = False
 			type_to_deactivate.save()
 
@@ -215,35 +212,32 @@ class TypesManager(models.Manager):
 	def song_ids_of_active_types(self):
 		return self.filter(active=True).values_list('associated_songs', flat=True).distinct()
 
-class Types(models.Model):
-	types = models.CharField(max_length=50)
-	associated_songs = models.ManyToManyField(Songs)
+class Type(models.Model):
+	type = models.CharField(max_length=50)
+	associated_songs = models.ManyToManyField(Song)
 	active = models.BooleanField(default=False)
-	objects = TypesManager()
-
-	class Meta:
-		verbose_name_plural = 'Types'
+	objects = TypeManager()
 	
 	@classmethod
 	def add_type(cls, new_type):
-		new_type_exists = cls.objects.filter(types=new_type)
+		new_type_exists = cls.objects.filter(type=new_type)
 		if new_type_exists:
 			return 'Type already exists'
 		else:
-			add_type = cls(types=new_type)
+			add_type = cls(type=new_type)
 			add_type.save()
 			return 'Type ' + new_type + ' added to types'
 
 	@classmethod
 	def remove_type(cls, remove_type):
-		remove_type_exists = cls.objects.filter(types=remove_type)
+		remove_type_exists = cls.objects.filter(type=remove_type)
 		if remove_type_exists:
 			remove_type_exists.delete()
 			return 'Type ' + remove_type + ' removed from types'
 
 
 	def __unicode__(self):
-		return self.types
+		return self.type
 
 class Timer(models.Model):
 	function = models.CharField(max_length=50)

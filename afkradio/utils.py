@@ -1,4 +1,4 @@
-from afkradio.models import Songs, Types, PlayHistory, Playlist
+from afkradio.models import Song, Type, PlayHistory, Playlist
 from afkradio.errors import *
 from django.utils import timezone
 import logging
@@ -49,7 +49,7 @@ class Playback:
 	@staticmethod
 	def mpc_update():
 		proc = subprocess.Popen(["mpc", "update"], stdout=NULL_DEVICE).wait()
-		return "Scanned MPD root and updated MPD db (NOT models.Songs DB)"
+		return "Scanned MPD root and updated MPD db (NOT models.Song DB)"
 
 	@staticmethod
 	def mpc_add(song_path):
@@ -71,14 +71,14 @@ class Playback:
 			return line[0:-1]
 
 class Database:
-	# update_songs_db
+	# update_song_db
 	# First runs mpc_update to update the mpd music database
 	# Then it will read from the mpd music root defined in afkradio.models for any
 	# .mp3, .ogg, and .flac music files and add them with their respective metadata
 	# to the Songs model
 
 	@staticmethod
-	def update_songs_db():
+	def update_song_db():
 		dupe_list = []
 		matches = []
 		supported_file_types = ('mp3', 'ogg', 'flac')
@@ -91,7 +91,7 @@ class Database:
 					# Get relative path of song from MPD_DB_ROOT
 					song_path = os.path.relpath(os.path.join(root, filename), MPD_DB_ROOT)
 					try:
-						Songs.add_song_exiftool(song_path, None)
+						Song.add_song_exiftool(song_path, None)
 					except DuplicateEntryError:
 						dupe_list.append(os.path.join(root, filename))
 		return dupe_list
@@ -99,29 +99,29 @@ class Database:
 	@staticmethod
 	# associate_type_to_song
 	# Associates a Song in Song.models to a Type in Type.models
-	def associate_type_to_song(song_id, type):
+	def associate_type_to_song(song_id, associate_type):
 		# Check if the type exists
-		if Types.objects.check_if_exists(type) is True:
-			type_to_associate = Types.objects.get(types=type)
+		if Type.objects.check_if_exists(associate_type) is True:
+			type_to_associate = Type.objects.get(type=associate_type)
 		else:
-			return type
+			return associate_type
 		# Check if the Song exists
-		if Songs.objects.check_if_id_exists(song_id) is True:
-			song_to_associate = Songs.objects.get(id=song_id)
+		if Song.objects.check_if_id_exists(song_id) is True:
+			song_to_associate = Song.objects.get(id=song_id)
 		else:
 			return song_id
 		type_to_associate.associated_songs.add(song_to_associate)
 
 	@staticmethod
-	def dissociate_type_to_song(song_id, type):
+	def dissociate_type_to_song(song_id, dissociate_type):
 		# Check if the type exists
-		if Types.objects.check_if_exists(type) is True:
-			type_to_dissociate = Types.objects.get(types=type)
+		if Type.objects.check_if_exists(dissociate_type) is True:
+			type_to_dissociate = Type.objects.get(type=dissociate_type)
 		else:
-			return type
+			return dissociate_type
 		# Check if the Song exists
-		if Songs.objects.check_if_id_exists(song_id) is True:
-			song_to_dissociate = Songs.objects.get(id=song_id)
+		if Song.objects.check_if_id_exists(song_id) is True:
+			song_to_dissociate = Song.objects.get(id=song_id)
 		else:
 			return song_id
 		type_to_dissociate.associated_songs.remove(song_to_dissociate)
@@ -133,10 +133,10 @@ class Control:
 	@staticmethod
 	def add_random_song(from_types=True):
 		if from_types:
-			random_song = Songs.objects.get_random_from_active_types()
+			random_song = Song.objects.get_random_from_active_types()
 			log_typed = 'from types '
 		else:
-			random_song = Songs.objects.get_random()
+			random_song = Song.objects.get_random()
 			log_typed = ''
 		if random_song:
 			Playlist.add_song(random_song.id)
@@ -151,7 +151,7 @@ class Control:
 	@staticmethod
 	def scan_for_songs():
 		Playback.mpc_update()
-		dupe_list = Database.update_songs_db()
+		dupe_list = Database.update_song_db()
 		logging.info('Scanned MPC root and updated Songs model and MPC playlist')
 		return dupe_list
 
