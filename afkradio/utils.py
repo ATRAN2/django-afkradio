@@ -1,5 +1,7 @@
 from afkradio.models import Songs, Types, PlayHistory, Playlist
 from afkradio.errors import *
+from django.utils import timezone
+import logging
 import json
 import fnmatch
 import os
@@ -66,7 +68,7 @@ class Playback:
 		if line.startswith("volume: n/a"):
 			return "No song is currently playing"
 		else:
-			return line
+			return line[0:-1]
 
 class Database:
 	# update_songs_db
@@ -124,49 +126,67 @@ class Database:
 			return song_id
 		type_to_dissociate.associated_songs.remove(song_to_dissociate)
 
+# Most of the high level functionality is contained in the Control class
 class Control:
+	# Gets a random song from any song that has a type that's active
+	# Can be set to False which will get a song from complete random
 	@staticmethod
-	def add_random_song():
-		random_song = Songs.objects.get_random()
-		Playlist.add_song(random_song.id)
-		mpc_add(random_song.filepath)
-
+	def add_random_song(from_types=True):
+		if from_types:
+			random_song = Songs.objects.get_random_from_active_types()
+			log_typed = 'from types '
+		else:
+			random_song = Songs.objects.get_random()
+			log_typed = ''
+		if random_song:
+			Playlist.add_song(random_song.id)
+			Playback.mpc_add(random_song.filepath)
+			logging.info('Random song ' + log_typed + random_song.title + \
+					' (Song ID: ' + str(random_song.id) + ') has been added ' + \
+					'to the playlist.  Filepath: ' + random_song.filepath)
+		else:
+			# No songs in the database
+			exit()
+	
+	@staticmethod
 	def scan_for_songs():
 		Playback.mpc_update()
 		dupe_list = Database.update_songs_db()
+		logging.info('Scanned MPC root and updated Songs model and MPC playlist')
 		return dupe_list
 
 	# run_stream is the main stream method that will run mpc and keep it
 	# persistently listening to commands with mpc idle
 	@staticmethod
-	def run_stream(init=True):
+	def run_stream(init=True, from_types=True):
+		logging.info('Stream has been initiated')
 		if init:
 			for song_count in PLAYLIST_SIZE:
-				Control.add_random_song()
-		mpc_play()
+				Control.add_random_song(from_types)
+		Playback.mpc_play()
 		# Add played song to PlayHistory
-		PlayHistory.add_song(Playlist.current_song().song_id, timezone.now())
+		PlayHistory.add_song(Playlist.objects.current_song().song_id, timezone.now())
 		while True:
 			proc = subprocess.Popen(["mpc", "idle"], stdout=subprocess.PIPE)
 			line = proc.stdout.readline()
 			while True:
-				if line == 'player':
+				if line[0:-1] == 'player':
 					check_state = subprocess.Popen(["mpc"], stdout=subprocess.PIPE)
 					state_line = check_state.stdout.readline()
 					if state_line.startswith('volume: n/a   repeat:'):
 						return
 					else:
 						Playlist.current_song().delete()
-						PlayHistory.add_song(
-								Playlist.current_song().song_id,
-								timezone.now()
-								)
+						new_song_id = Playlist.current_song().song_id
+						logging.info('Played ' + Playback.mpc_currently_playing() + \
+								'(Song ID: ' + new_song_id + ')')
+						PlayHistory.add_song(new_song_id, timezone.now())
 						Control.add_random_song()
-						mpc_delete(1)
+						Playback.mpc_delete(1)
 						break
 				else:
 					continue
-
+	
 	
 class Config:
 	# Edits config.json file with new values. Takes a list that has values that

@@ -78,13 +78,30 @@ class ModelSongsMethodTests(TestCase):
 			Songs.objects.check_if_id_exists("2")
 
 	def test_get_random(self):
-		with self.assertRaises(FieldNotFoundError):
+		with self.assertRaises(SongNotFoundError):
 			Songs.objects.get_random()
 		Database.update_songs_db()
 		random_song = Songs.objects.get_random()
 		self.assertTrue(Songs.objects.check_if_id_exists(random_song.id))
 
-
+	def test_get_random_from_active_types(self):
+		with self.assertRaises(SongNotFoundError):
+			Songs.objects.get_random_from_active_types()
+		Database.update_songs_db()
+		Types.add_type('Test_Type1')
+		Types.add_type('Test_Type2')
+		Types.add_type('Test_Type3')
+		Types.objects.activate_type('Test_Type1')
+		Types.objects.activate_type('Test_Type3')
+		with self.assertRaises(SongNotFoundError):
+			Songs.objects.get_random_from_active_types()
+		Database.associate_type_to_song('1', 'Test_Type1')
+		Database.associate_type_to_song('2', 'Test_Type1')
+		Database.associate_type_to_song('3', 'Test_Type2')
+		Database.associate_type_to_song('4', 'Test_Type3')
+		Database.associate_type_to_song('5', 'Test_Type3')
+		self.assertTrue(len(Types.objects.song_ids_of_active_types()) == 4)
+		self.assertEqual(Songs.objects.get_random_from_active_types().title, 'Test_Title')
 
 class ModelTypesMethodTests(TestCase):
 	def test_add_type(self):

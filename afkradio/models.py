@@ -56,10 +56,22 @@ class SongsManager(models.Manager):
 			index = random.randint(0, last)
 			return self.all()[index]
 		else:
-			raise FieldNotFoundError( 'There are no songs in the database yet. Please click ' + \
+			raise SongNotFoundError( 'There are no songs in the database yet. Please click ' + \
 				'Update Database in the admin panel or run Control.scan_for_songs() in ' + \
 				' afkradio.utils from the shell' )
 			return False
+
+	def get_random_from_active_types(self):
+		active_songs = list(Types.objects.song_ids_of_active_types())
+		if not active_songs or not active_songs[0]:
+			raise SongNotFoundError( 'There are no songs associated to the active types' )
+			return False
+		else:
+			active_song_count = len(active_songs)
+			index = random.randint(0,active_song_count-1)
+			random_active_song_id = active_songs[index]
+			return self.get(id=random_active_song_id)
+
 
 class Songs(models.Model):
 	title = models.CharField(max_length=200, blank=True)
@@ -73,6 +85,9 @@ class Songs(models.Model):
 	times_played = models.PositiveIntegerField(default=0)
 	times_faved = models.PositiveIntegerField(default=0)
 	objects = SongsManager()
+
+	class Meta:
+		verbose_name_plural ='Songs'
 
 	# add_song_exiftool method
 	# Given the song path relative MPD_DB_ROOT, runs exiftool
@@ -179,10 +194,35 @@ class TypesManager(models.Manager):
 				' does not exist')
 			return False
 
+	def activate_type(self, type):
+		if self.check_if_exists(type):
+			type_to_activate = self.get(types=type)
+			type_to_activate.active = True
+			type_to_activate.save()
+
+	def deactivate_type(self, type):
+		if self.check_if_exists(type):
+			type_to_deactivate = self.get(types=type)
+			type_to_deactivate.active = False
+			type_to_deactivate.save()
+
+	def inactive_types(self):
+		return self.filter(active=False)
+	
+	def active_types(self):
+		return self.filter(active=True)
+
+	def song_ids_of_active_types(self):
+		return self.filter(active=True).values_list('associated_songs', flat=True).distinct()
+
 class Types(models.Model):
 	types = models.CharField(max_length=50)
 	associated_songs = models.ManyToManyField(Songs)
+	active = models.BooleanField(default=False)
 	objects = TypesManager()
+
+	class Meta:
+		verbose_name_plural = 'Types'
 	
 	@classmethod
 	def add_type(cls, new_type):
@@ -211,6 +251,10 @@ class Timer(models.Model):
 	votes = models.CharField(max_length=5, blank=True)
 	create_time = models.DateTimeField('Create time')
 	expire_time = models.DateTimeField('Expire time')
+
+class PlayHistoryManager(models.Manager):
+	def clear_playhistory(self):
+		self.all().delete()
 
 class PlayHistory(models.Model):
 	song_id = models.CharField(max_length=16)
@@ -252,6 +296,9 @@ class PlaylistManager(models.Manager):
 
 	def clear_playlist_retain_requested(self):
 		self.filter(user_requested=False).delete()
+
+	def sorted_newest(self):
+		return self.order_by('add_time')
 		
 
 class Playlist(models.Model):
