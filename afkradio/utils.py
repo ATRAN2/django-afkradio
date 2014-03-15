@@ -1,6 +1,7 @@
 from afkradio.models import Song, Type, PlayHistory, Playlist
 from afkradio.errors import *
 from django.utils import timezone
+from time import sleep
 import logging
 import json
 import fnmatch
@@ -135,6 +136,15 @@ class Control:
 		if from_types:
 			random_song = Song.objects.get_random_from_active_types()
 			log_typed = 'from types '
+			if not random_song:
+				if not Types.active_types():
+					raise TypeNotFoundError('No Types are currently active. ' + \
+						'Ignoring types and playing a random song instead')
+				else:
+					raise SongNotFoundError('No songs associated to set active ' + \
+						'types.  Ignoring types and playing a random song instead')
+				random_song = Song.objects.get_random()
+				log_typed = ''
 		else:
 			random_song = Song.objects.get_random()
 			log_typed = ''
@@ -156,18 +166,21 @@ class Control:
 		return dupe_list
 
 	# run_stream is the main stream method that will run mpc and keep it
-	# persistently listening to commands with mpc idle
+	# persistently listening to commands with mpc idle.  It plays songs in
+	# activated types by default, but if no types are active, then it will
+	# play from all songs
 	@staticmethod
 	def run_stream(init=True, from_types=True):
 		logging.info('Stream has been initiated')
 		if init:
-			for song_count in PLAYLIST_SIZE:
+			for song_count in range(int(PLAYLIST_SIZE)):
 				Control.add_random_song(from_types)
 		Playback.mpc_play()
 		# Add played song to PlayHistory
 		PlayHistory.add_song(Playlist.objects.current_song().song_id, timezone.now())
 		while True:
 			proc = subprocess.Popen(["mpc", "idle"], stdout=subprocess.PIPE)
+			sleep(0.5)
 			line = proc.stdout.readline()
 			while True:
 				if line[0:-1] == 'player':
@@ -176,8 +189,8 @@ class Control:
 					if state_line.startswith('volume: n/a   repeat:'):
 						return
 					else:
-						Playlist.current_song().delete()
-						new_song_id = Playlist.current_song().song_id
+						Playlist.objects.current_song().delete()
+						new_song_id = Playlist.object.current_song().song_id
 						logging.info('Played ' + Playback.mpc_currently_playing() + \
 								'(Song ID: ' + new_song_id + ')')
 						PlayHistory.add_song(new_song_id, timezone.now())

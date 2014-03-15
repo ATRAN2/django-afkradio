@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 from afkradio.errors import *
 from django.core.exceptions import FieldError
+from django.core.urlresolvers import reverse
 import random
 import json
 import os
@@ -263,27 +264,24 @@ class PlayHistory(models.Model):
 		return self.song_id
 
 class PlaylistManager(models.Manager):
-	def current_song(self):
-		# Precedence to user_requested songs
-		sort_oldest = self.filter(user_requested=True).order_by('add_time')
-		if not sort_oldest:
-			sort_oldest = self.filter(user_requested=False).order_by('add_time')
-		next_song = sort_oldest[0]
-		return next_song
 
+	# Get current song with precedence to user_requested songs
+	def current_song(self):
+		try:
+			current_song = self.order_by('-user_requested', 'add_time')[0]
+			return current_song
+		except Playlist.DoesNotExist:
+			raise SongNotFoundError('There are no songs in the Playlist')
+			return False
+
+	# Get next song with precedence to user_requested songs
 	def next_song(self):
-		# Precedence to user_requested songs
-		sort_oldest = self.filter(user_requested=True).order_by('add_time')
-		# Next song is the one after the current
-		next_index = 1
-		# If there are no requested songs or if there is only one
-		if sort_oldest.count() <= 1:
-			next_index = 0
-			if not sort_oldest:
-				next_index = 1
-			sort_oldest = self.filter(user_requested=False).order_by('add_time')
-		next_song = sort_oldest[next_index]
-		return next_song
+		try:
+			next_song = self.order_by('-user_requested', 'add_time')[1]
+			return next_song
+		except Playlist.DoesNotExist:
+			raise SongNotFoundError('Next song does not exist in the Playlist')
+			return False
 
 	def clear_playlist_full(self):
 		self.all().delete()
@@ -291,16 +289,19 @@ class PlaylistManager(models.Manager):
 	def clear_playlist_retain_requested(self):
 		self.filter(user_requested=False).delete()
 
-	def sorted_newest(self):
-		return self.order_by('add_time')
-		
+	def queue_sorted(self):
+		return self.order_by('-user_requested', 'add_time')
+
 
 class Playlist(models.Model):
 	song_id = models.CharField(max_length=16)
 	add_time = models.DateTimeField('Add Time')
 	user_requested = models.BooleanField(default=False)
 	objects = PlaylistManager()
-	
+
+	def song_title(self):
+		return Song.objects.get(id=self.song_id).title
+
 	@classmethod
 	def add_song(cls, new_song_id, requested=False):
 		new_song = cls(

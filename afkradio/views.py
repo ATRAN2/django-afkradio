@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404
 from django.views import generic
 
-from afkradio.models import Songs, Playlist, PlayHistory, Types
+from afkradio.models import Song, Playlist, PlayHistory, Type
 
 import logging
 
@@ -10,4 +10,4 @@ class ListView(generic.ListView):
 	context_object_name = 'songs_list'
 
 	def get_queryset(self):
-		return Songs.objects.all()
+		return Song.objects.all()
