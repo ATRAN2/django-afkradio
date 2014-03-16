@@ -1,21 +1,21 @@
 from django.contrib import admin
 from django.core.urlresolvers import reverse
-from afkradio.models import Song, Type, Playlist, PlayHistory
+from afkradio.models import Song, Setlist, Playlist, PlayHistory
 
 
-class TypeAdmin(admin.ModelAdmin):
+class SetlistAdmin(admin.ModelAdmin):
 	list_per_page = 20
-	list_display = ('type', 'active',)
+	list_display = ('setlist', 'active',)
 	exclude = ('associated_songs',)
 
-class TypeInline(admin.TabularInline):
-	model = Type.associated_songs.through
+class SetlistInline(admin.TabularInline):
+	model = Setlist.associated_songs.through
 
 class SongAdmin(admin.ModelAdmin):
 	list_per_page = 20
 	list_display = ('id', 'artist', 'title', 'album', 'playcount', 'favecount')
 	search_fields = ['title']
-	inlines = [TypeInline]
+	inlines = [SetlistInline]
 
 class PlayHistoryAdmin(admin.ModelAdmin):
 	def song_title_edit(self, object):
@@ -39,6 +39,6 @@ class PlaylistAdmin(admin.ModelAdmin):
 	song_title_edit.allow_tags = True
 
 admin.site.register(Song, SongAdmin)
-admin.site.register(Type, TypeAdmin)
+admin.site.register(Setlist, SetlistAdmin)
 admin.site.register(Playlist, PlaylistAdmin)
 admin.site.register(PlayHistory, PlayHistoryAdmin)

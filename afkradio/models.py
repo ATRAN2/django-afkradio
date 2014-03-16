@@ -62,10 +62,10 @@ class SongManager(models.Manager):
 				' afkradio.utils from the shell' )
 			return False
 
-	def get_random_from_active_types(self):
-		active_songs = list(Type.objects.song_ids_of_active_types())
+	def get_random_from_active_setlists(self):
+		active_songs = list(Setlist.objects.song_ids_of_active_setlists())
 		if not active_songs or not active_songs[0]:
-			raise SongNotFoundError( 'There are no songs associated to the active types' )
+			raise SongNotFoundError( 'There are no songs associated to the active setlists' )
 			return False
 		else:
 			active_song_count = len(active_songs)
@@ -108,7 +108,7 @@ class Song(models.Model):
 		new_song = cls()
 		# Get absolute path of song
 		abs_song_path = os.path.join(MPD_DB_ROOT, rel_song_path)
-		# List supported file types in supporteD_file_types
+		# List supported file types in supported_file_types
 		supported_file_types = ('MP3', 'OGG', 'FLAC',)
 		# Dict of metadata that we want from exiftool and corresponding fields
 		# Keys are exiftool labels for the metadata
@@ -174,71 +174,71 @@ class Song(models.Model):
 		except TypeError:
 			return 'Empty title field'
 
-# Types Model
-# Available Types to associate with songs are stored here.
-# Types are created and associated with songs in order to have
-# song subsets.  Types can be activated in afkradio to limit
-# the types of songs selected when shuffled (i.e. If only 
-# fast songs are desired select the corresponding types
-# and so slow songs will creep in due to shuffle). Both type
-# selection and type association will be handled by users.
-class TypeManager(models.Manager):
-	def check_if_exists(self, check_type):
+# Setlist Model
+# Available Setlists to associate with songs are stored here.
+# Setlists are created and associated with songs in order to have
+# song subsets.  Setlists can be activated in afkradio to limit
+# the setlists of songs selected when shuffled (i.e. If only 
+# fast songs are desired select the corresponding setlists
+# and so slow songs will creep in due to shuffle). Both setlist
+# selection and setlist association will be handled by users.
+class SetlistManager(models.Manager):
+	def check_if_exists(self, check_setlist):
 		try:
-			type_to_check = self.get(type=check_type)
+			setlist_to_check = self.get(setlist=check_setlist)
 			return True
-		except Type.DoesNotExist:
-			raise TypeNotFoundError('The Type with the type ' + check_type + \
+		except Setlist.DoesNotExist:
+			raise SetlistNotFoundError('The Setlist with the setlist' + check_setlist + \
 				' does not exist')
 			return False
 
-	def activate_type(self, type_to_activate):
-		if self.check_if_exists(type_to_activate):
-			type_to_activate = self.get(type=type_to_activate)
-			type_to_activate.active = True
-			type_to_activate.save()
+	def activate_setlist(self, setlist_to_activate):
+		if self.check_if_exists(setlist_to_activate):
+			setlist_to_activate = self.get(setlist=setlist_to_activate)
+			setlist_to_activate.active = True
+			setlist_to_activate.save()
 
-	def deactivate_type(self, type_to_deactivate):
-		if self.check_if_exists(type):
-			type_to_deactivate = self.get(type=type_to_deactivate)
-			type_to_deactivate.active = False
-			type_to_deactivate.save()
+	def deactivate_setlist(self, setlist_to_deactivate):
+		if self.check_if_exists(setlist):
+			setlist_to_deactivate = self.get(setlist=setlist_to_deactivate)
+			setlist_to_deactivate.active = False
+			setlist_to_deactivate.save()
 
-	def inactive_types(self):
+	def inactive_setlists(self):
 		return self.filter(active=False)
 	
-	def active_types(self):
+	def active_setlists(self):
 		return self.filter(active=True)
 
-	def song_ids_of_active_types(self):
+	def song_ids_of_active_setlists(self):
 		return self.filter(active=True).values_list('associated_songs', flat=True).distinct()
 
-class Type(models.Model):
-	type = models.CharField(max_length=50)
+class Setlist(models.Model):
+	setlist = models.CharField(max_length=50)
 	associated_songs = models.ManyToManyField(Song)
 	active = models.BooleanField(default=False)
-	objects = TypeManager()
+	objects = SetlistManager()
 	
 	@classmethod
-	def add_type(cls, new_type):
-		new_type_exists = cls.objects.filter(type=new_type)
-		if new_type_exists:
-			return 'Type already exists'
+	def add_setlist(cls, new_setlist):
+		new_setlist_exists = cls.objects.filter(setlist=new_setlist)
+		if new_setlist_exists:
+			return 'Setlist already exists'
 		else:
-			add_type = cls(type=new_type)
-			add_type.save()
-			return 'Type ' + new_type + ' added to types'
+			add_setlist = cls(setlist=new_setlist)
+			add_setlist.save()
+			return 'Setlist ' + new_setlist + ' added to setlists'
 
 	@classmethod
-	def remove_type(cls, remove_type):
-		remove_type_exists = cls.objects.filter(type=remove_type)
-		if remove_type_exists:
-			remove_type_exists.delete()
-			return 'Type ' + remove_type + ' removed from types'
+	def remove_setlist(cls, remove_setlist):
+		remove_setlist_exists = cls.objects.filter(setlist=remove_setlist)
+		if remove_setlist_exists:
+			remove_setlist_exists.delete()
+			return 'Setlist ' + remove_setlist + ' removed from setlists'
 
 
 	def __unicode__(self):
-		return self.type
+		return self.setlist
 
 class Timer(models.Model):
 	function = models.CharField(max_length=50)

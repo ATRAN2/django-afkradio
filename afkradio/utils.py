@@ -1,4 +1,4 @@
-from afkradio.models import Song, Type, PlayHistory, Playlist
+from afkradio.models import Song, Setlist, PlayHistory, Playlist
 from afkradio.errors import *
 from django.utils import timezone
 from time import sleep
@@ -98,60 +98,60 @@ class Database:
 		return dupe_list
 		
 	@staticmethod
-	# associate_type_to_song
-	# Associates a Song in Song.models to a Type in Type.models
-	def associate_type_to_song(song_id, associate_type):
-		# Check if the type exists
-		if Type.objects.check_if_exists(associate_type) is True:
-			type_to_associate = Type.objects.get(type=associate_type)
+	# associate_setlist_to_song
+	# Associates a Song in Song.models to a Setlist in Setlist.models
+	def associate_setlist_to_song(song_id, associate_setlist):
+		# Check if the setlist exists
+		if Setlist.objects.check_if_exists(associate_setlist) is True:
+			setlist_to_associate = Setlist.objects.get(setlist=associate_setlist)
 		else:
-			return associate_type
+			return associate_setlist
 		# Check if the Song exists
 		if Song.objects.check_if_id_exists(song_id) is True:
 			song_to_associate = Song.objects.get(id=song_id)
 		else:
 			return song_id
-		type_to_associate.associated_songs.add(song_to_associate)
+		setlist_to_associate.associated_songs.add(song_to_associate)
 
 	@staticmethod
-	def dissociate_type_to_song(song_id, dissociate_type):
-		# Check if the type exists
-		if Type.objects.check_if_exists(dissociate_type) is True:
-			type_to_dissociate = Type.objects.get(type=dissociate_type)
+	def dissociate_setlist_to_song(song_id, dissociate_setlist):
+		# Check if the setlist exists
+		if Setlist.objects.check_if_exists(dissociate_setlist) is True:
+			setlist_to_dissociate = Setlist.objects.get(setlist=dissociate_setlist)
 		else:
-			return dissociate_type
+			return dissociate_setlist
 		# Check if the Song exists
 		if Song.objects.check_if_id_exists(song_id) is True:
 			song_to_dissociate = Song.objects.get(id=song_id)
 		else:
 			return song_id
-		type_to_dissociate.associated_songs.remove(song_to_dissociate)
+		setlist_to_dissociate.associated_songs.remove(song_to_dissociate)
 
 # Most of the high level functionality is contained in the Control class
 class Control:
-	# Gets a random song from any song that has a type that's active
+	# Gets a random song from any song that has a setlist that's active
 	# Can be set to False which will get a song from complete random
 	@staticmethod
-	def add_random_song(from_types=True):
-		if from_types:
-			random_song = Song.objects.get_random_from_active_types()
-			log_typed = 'from types '
+	def add_random_song(from_setlists=True):
+		if from_setlists:
+			random_song = Song.objects.get_random_from_active_setlists()
+			log_setlisted = 'from setlists '
 			if not random_song:
-				if not Types.active_types():
-					raise TypeNotFoundError('No Types are currently active. ' + \
-						'Ignoring types and playing a random song instead')
+				if not Setlist.active_setlists():
+					raise SetlistNotFoundError('No Setlists are currently active. ' + \
+						'Ignoring setlists and playing a random song instead')
 				else:
 					raise SongNotFoundError('No songs associated to set active ' + \
-						'types.  Ignoring types and playing a random song instead')
+						'setlists.  Ignoring setlists and playing a random song instead')
 				random_song = Song.objects.get_random()
-				log_typed = ''
+				log_setlisted = ''
 		else:
 			random_song = Song.objects.get_random()
-			log_typed = ''
+			log_setlisted = ''
 		if random_song:
 			Playlist.add_song(random_song.id)
 			Playback.mpc_add(random_song.filepath)
-			logging.info('Random song ' + log_typed + random_song.title + \
+			logging.info('Random song ' + log_setlisted + random_song.title + \
 					' (Song ID: ' + str(random_song.id) + ') has been added ' + \
 					'to the playlist.  Filepath: ' + random_song.filepath)
 		else:
@@ -167,16 +167,16 @@ class Control:
 
 	# run_stream is the main stream method that will run mpc and keep it
 	# persistently listening to commands with mpc idle.  It plays songs in
-	# activated types by default, but if no types are active, then it will
+	# activated setlists by default, but if no setlists are active, then it will
 	# play from all songs
 	@staticmethod
-	def run_stream(init=True, from_types=True):
+	def run_stream(init=True, from_setlists=True):
 		logging.info('Stream has been initiated')
 		if init:
 			Playback.mpc_clear()
 			Playlist.objects.clear_playlist_full()
 			for song_count in range(int(PLAYLIST_SIZE)):
-				Control.add_random_song(from_types)
+				Control.add_random_song(from_setlists)
 		Playback.mpc_play()
 		# Add played song to PlayHistory
 		PlayHistory.add_song(Playlist.objects.current_song().song_id, timezone.now())

@@ -1,5 +1,5 @@
 from django.test import TestCase
-from afkradio.models import Song, Type
+from afkradio.models import Song, Setlist
 from django.utils import timezone
 from afkradio.utils import Playback, Database, Playlist, PlayHistory
 from afkradio.errors import *
@@ -84,82 +84,82 @@ class ModelSongMethodTests(TestCase):
 		random_song = Song.objects.get_random()
 		self.assertTrue(Song.objects.check_if_id_exists(random_song.id))
 
-	def test_get_random_from_active_types(self):
+	def test_get_random_from_active_setlists(self):
 		with self.assertRaises(SongNotFoundError):
-			Song.objects.get_random_from_active_types()
+			Song.objects.get_random_from_active_setlists()
 		Database.update_song_db()
-		Type.add_type('Test_Type1')
-		Type.add_type('Test_Type2')
-		Type.add_type('Test_Type3')
-		Type.objects.activate_type('Test_Type1')
-		Type.objects.activate_type('Test_Type3')
+		Setlist.add_setlist('Test_Setlist1')
+		Setlist.add_setlist('Test_Setlist2')
+		Setlist.add_setlist('Test_Setlist3')
+		Setlist.objects.activate_setlist('Test_Setlist1')
+		Setlist.objects.activate_setlist('Test_Setlist3')
 		with self.assertRaises(SongNotFoundError):
-			Song.objects.get_random_from_active_types()
-		Database.associate_type_to_song('1', 'Test_Type1')
-		Database.associate_type_to_song('2', 'Test_Type1')
-		Database.associate_type_to_song('3', 'Test_Type2')
-		Database.associate_type_to_song('4', 'Test_Type3')
-		Database.associate_type_to_song('5', 'Test_Type3')
-		self.assertTrue(len(Type.objects.song_ids_of_active_types()) == 4)
-		self.assertEqual(Song.objects.get_random_from_active_types().title, 'Test_Title')
+			Song.objects.get_random_from_active_setlists()
+		Database.associate_setlist_to_song('1', 'Test_Setlist1')
+		Database.associate_setlist_to_song('2', 'Test_Setlist1')
+		Database.associate_setlist_to_song('3', 'Test_Setlist2')
+		Database.associate_setlist_to_song('4', 'Test_Setlist3')
+		Database.associate_setlist_to_song('5', 'Test_Setlist3')
+		self.assertTrue(len(Setlist.objects.song_ids_of_active_setlists()) == 4)
+		self.assertEqual(Song.objects.get_random_from_active_setlists().title, 'Test_Title')
 
-class ModelTypeMethodTests(TestCase):
-	def test_add_type(self):
+class ModelSetlistMethodTests(TestCase):
+	def test_add_setlist(self):
 		"""
-		Test if a new type can be added with add_types() function
+		Test if a new setlist can be added with add_setlists() function
 		"""
-		Type.add_type('add_test')
-		self.assertQuerysetEqual(Type.objects.all(),['<Type: add_test>'])
+		Setlist.add_setlist('add_test')
+		self.assertQuerysetEqual(Setlist.objects.all(),['<Setlist: add_test>'])
 
-	def test_add_type_with_same_entry(self):
+	def test_add_setlist_with_same_entry(self):
 		"""
-		Test if a new type can be added with add_types() function
+		Test if a new setlist can be added with add_setlists() function
 		"""
-		Type.add_type('add_test')
-		Type.add_type('add_test')
-		self.assertQuerysetEqual(list(Type.objects.all()),['<Type: add_test>'])
+		Setlist.add_setlist('add_test')
+		Setlist.add_setlist('add_test')
+		self.assertQuerysetEqual(list(Setlist.objects.all()),['<Setlist: add_test>'])
 
-	def test_add_type_multiple_entries(self):
+	def test_add_setlist_multiple_entries(self):
 		"""
-		Test if a new type can be added with add_types() function
+		Test if a new setlist can be added with add_setlists() function
 		"""
-		Type.add_type('add_test1')
-		Type.add_type('add_test2')
-		self.assertQuerysetEqual(list(Type.objects.all()),
-			['<Type: add_test1>', '<Type: add_test2>',])
+		Setlist.add_setlist('add_test1')
+		Setlist.add_setlist('add_test2')
+		self.assertQuerysetEqual(list(Setlist.objects.all()),
+			['<Setlist: add_test1>', '<Setlist: add_test2>',])
 
-	def test_remove_type_single_entry(self):
+	def test_remove_setlist_single_entry(self):
 		"""
-		Test if a type can be removed with remove_types() function
+		Test if a setlist can be removed with remove_setlists() function
 		"""
-		Type.add_type('remove_test')
-		self.assertQuerysetEqual(Type.objects.all(),['<Type: remove_test>'])
-		Type.remove_type('remove_test')
-		self.assertQuerysetEqual(Type.objects.all(),[])
+		Setlist.add_setlist('remove_test')
+		self.assertQuerysetEqual(Setlist.objects.all(),['<Setlist: remove_test>'])
+		Setlist.remove_setlist('remove_test')
+		self.assertQuerysetEqual(Setlist.objects.all(),[])
 
-	def test_remove_type_nonexistant_entry(self):
+	def test_remove_setlist_nonexistant_entry(self):
 		"""
-		Test if a type that doesn't can attempt to be removed with 
-		remove_types() function
+		Test if a setlist that doesn't can attempt to be removed with 
+		remove_setlists() function
 		"""
-		self.assertQuerysetEqual(Type.objects.all(),[])
-		Type.remove_type('remove_test')
-		self.assertQuerysetEqual(Type.objects.all(),[])
+		self.assertQuerysetEqual(Setlist.objects.all(),[])
+		Setlist.remove_setlist('remove_test')
+		self.assertQuerysetEqual(Setlist.objects.all(),[])
 
 
-	def test_remove_type_multiple_entry(self):
+	def test_remove_setlist_multiple_entry(self):
 		"""
-		Test if multiple types can be removed with remove_types() function
+		Test if multiple setlists can be removed with remove_setlists() function
 		"""
-		Type.add_type('remove_test1')
-		Type.add_type('remove_test2')
-		self.assertQuerysetEqual(list(Type.objects.all()),
-			['<Type: remove_test1>', '<Type: remove_test2>',])
-		Type.remove_type('remove_test1')
-		self.assertQuerysetEqual(list(Type.objects.all()),
-			['<Type: remove_test2>'])
-		Type.remove_type('remove_test2')
-		self.assertQuerysetEqual(Type.objects.all(),[])
+		Setlist.add_setlist('remove_test1')
+		Setlist.add_setlist('remove_test2')
+		self.assertQuerysetEqual(list(Setlist.objects.all()),
+			['<Setlist: remove_test1>', '<Setlist: remove_test2>',])
+		Setlist.remove_setlist('remove_test1')
+		self.assertQuerysetEqual(list(Setlist.objects.all()),
+			['<Setlist: remove_test2>'])
+		Setlist.remove_setlist('remove_test2')
+		self.assertQuerysetEqual(Setlist.objects.all(),[])
 
 class PlayHistoryMethodTests(TestCase):
 	def test_add_song(self):
@@ -267,115 +267,115 @@ class UtilDatabaseMethodTests(TestCase):
 		self.assertEqual(Song.objects.count(), first_update_songs_count)
 
 
-	def test_associate_type_to_song(self):
-		Type.add_type('test_type')
-		test_type = Type.objects.get(type='test_type')
+	def test_associate_setlist_to_song(self):
+		Setlist.add_setlist('test_setlist')
+		test_setlist = Setlist.objects.get(setlist='test_setlist')
 		Song.add_song_exiftool("Test Path/test.mp3")
 		test_song = Song.objects.get(title='Test_Title')
-		Database.associate_type_to_song(test_song.id, test_type.type)
+		Database.associate_setlist_to_song(test_song.id, test_setlist.setlist)
 		self.assertQuerysetEqual(
-			list(Type.objects.get(type='test_type').associated_songs.all()),
+			list(Setlist.objects.get(setlist='test_setlist').associated_songs.all()),
 			['<Song: Test_Title>']
 		)
 		self.assertQuerysetEqual(
-			list(Song.objects.get(title='Test_Title').type_set.all()),
-			['<Type: test_type>']
+			list(Song.objects.get(title='Test_Title').setlist_set.all()),
+			['<Setlist: test_setlist>']
 		)
 
-	def test_associate_type_to_song_multiple_types_multiple_songs(self):
-		Type.add_type('test_type1')
-		Type.add_type('test_type2')
-		test_type1 = Type.objects.get(type='test_type1')
-		test_type2 = Type.objects.get(type='test_type2')
+	def test_associate_setlist_to_song_multiple_setlists_multiple_songs(self):
+		Setlist.add_setlist('test_setlist1')
+		Setlist.add_setlist('test_setlist2')
+		test_setlist1 = Setlist.objects.get(setlist='test_setlist1')
+		test_setlist2 = Setlist.objects.get(setlist='test_setlist2')
 		Song.add_song_exiftool("Test Path/test.mp3")
 		Song.add_song_exiftool("Test Path/test2.mp3")
 		test_song1 = Song.objects.get(id=1)
 		test_song2 = Song.objects.get(id=2)
-		Database.associate_type_to_song(test_song1.id, test_type1.type)
-		Database.associate_type_to_song(test_song1.id, test_type2.type)
-		Database.associate_type_to_song(test_song2.id, test_type1.type)
-		Database.associate_type_to_song(test_song2.id, test_type2.type)
+		Database.associate_setlist_to_song(test_song1.id, test_setlist1.setlist)
+		Database.associate_setlist_to_song(test_song1.id, test_setlist2.setlist)
+		Database.associate_setlist_to_song(test_song2.id, test_setlist1.setlist)
+		Database.associate_setlist_to_song(test_song2.id, test_setlist2.setlist)
 		self.assertQuerysetEqual(
-			list(Type.objects.get(type='test_type1').associated_songs.all()),
+			list(Setlist.objects.get(setlist='test_setlist1').associated_songs.all()),
 			['<Song: Test_Title>', '<Song: Test_Title>',]
 		)
 		self.assertQuerysetEqual(
-			list(Type.objects.get(type='test_type2').associated_songs.all()),
+			list(Setlist.objects.get(setlist='test_setlist2').associated_songs.all()),
 			['<Song: Test_Title>', '<Song: Test_Title>',]
 		)
 		self.assertQuerysetEqual(
-			list(Song.objects.get(id=1).type_set.all()),
-			['<Type: test_type1>', '<Type: test_type2>',]
+			list(Song.objects.get(id=1).setlist_set.all()),
+			['<Setlist: test_setlist1>', '<Setlist: test_setlist2>',]
 		)
 		self.assertQuerysetEqual(
-			list(Song.objects.get(id=2).type_set.all()),
-			['<Type: test_type1>', '<Type: test_type2>',]
+			list(Song.objects.get(id=2).setlist_set.all()),
+			['<Setlist: test_setlist1>', '<Setlist: test_setlist2>',]
 		)
 
-	def test_associate_type_to_song_missing_type(self):
-		nonexistant_type = 'no_type'
+	def test_associate_setlist_to_song_missing_setlist(self):
+		nonexistant_setlist = 'no_setlist'
 		Song.add_song_exiftool("Test Path/test.mp3")
 		test_song = Song.objects.get(title='Test_Title')
-		with self.assertRaises(TypeNotFoundError):
-			Database.associate_type_to_song(test_song.id, nonexistant_type)
+		with self.assertRaises(SetlistNotFoundError):
+			Database.associate_setlist_to_song(test_song.id, nonexistant_setlist)
 
-	def test_associate_type_to_song_missing_song(self):
-		Type.add_type('test_type')
-		test_type = Type.objects.get(type='test_type')
+	def test_associate_setlist_to_song_missing_song(self):
+		Setlist.add_setlist('test_setlist')
+		test_setlist = Setlist.objects.get(setlist='test_setlist')
 		nonexistant_song_id = '33333'
 		with self.assertRaises(SongNotFoundError):
-			Database.associate_type_to_song(nonexistant_song_id, test_type.type)
+			Database.associate_setlist_to_song(nonexistant_song_id, test_setlist.setlist)
 
 
-	def test_dissociate_type_to_song(self):
-		Type.add_type('test_type1')
-		Type.add_type('test_type2')
-		test_type1 = Type.objects.get(type='test_type1')
-		test_type2 = Type.objects.get(type='test_type2')
+	def test_dissociate_setlist_to_song(self):
+		Setlist.add_setlist('test_setlist1')
+		Setlist.add_setlist('test_setlist2')
+		test_setlist1 = Setlist.objects.get(setlist='test_setlist1')
+		test_setlist2 = Setlist.objects.get(setlist='test_setlist2')
 		Song.add_song_exiftool("Test Path/test.mp3")
 		Song.add_song_exiftool("Test Path/test2.mp3")
 		test_song1 = Song.objects.get(id=1)
 		test_song2 = Song.objects.get(id=2)
-		Database.associate_type_to_song(test_song1.id, test_type1.type)
-		Database.associate_type_to_song(test_song1.id, test_type2.type)
-		Database.associate_type_to_song(test_song2.id, test_type1.type)
-		Database.associate_type_to_song(test_song2.id, test_type2.type)
+		Database.associate_setlist_to_song(test_song1.id, test_setlist1.setlist)
+		Database.associate_setlist_to_song(test_song1.id, test_setlist2.setlist)
+		Database.associate_setlist_to_song(test_song2.id, test_setlist1.setlist)
+		Database.associate_setlist_to_song(test_song2.id, test_setlist2.setlist)
 		self.assertQuerysetEqual(
-			list(Type.objects.get(type='test_type1').associated_songs.all()),
+			list(Setlist.objects.get(setlist='test_setlist1').associated_songs.all()),
 			['<Song: Test_Title>', '<Song: Test_Title>',]
 		)
 		self.assertQuerysetEqual(
-			list(Song.objects.get(id=1).type_set.all()),
-			['<Type: test_type1>', '<Type: test_type2>',]
+			list(Song.objects.get(id=1).setlist_set.all()),
+			['<Setlist: test_setlist1>', '<Setlist: test_setlist2>',]
 		)
-		Database.dissociate_type_to_song(test_song1.id, test_type1.type)
+		Database.dissociate_setlist_to_song(test_song1.id, test_setlist1.setlist)
 		self.assertQuerysetEqual(
-			list(Type.objects.get(type='test_type1').associated_songs.all()),
+			list(Setlist.objects.get(setlist='test_setlist1').associated_songs.all()),
 			['<Song: Test_Title>',]
 		)
 		self.assertQuerysetEqual(
-			list(Song.objects.get(id=1).type_set.all()),
-			['<Type: test_type2>',]
+			list(Song.objects.get(id=1).setlist_set.all()),
+			['<Setlist: test_setlist2>',]
 		)
 		self.assertQuerysetEqual(
-			list(Type.objects.get(type='test_type2').associated_songs.all()),
+			list(Setlist.objects.get(setlist='test_setlist2').associated_songs.all()),
 			['<Song: Test_Title>', '<Song: Test_Title>',]
 		)
 		self.assertQuerysetEqual(
-			list(Song.objects.get(id=2).type_set.all()),
-			['<Type: test_type1>', '<Type: test_type2>',]
+			list(Song.objects.get(id=2).setlist_set.all()),
+			['<Setlist: test_setlist1>', '<Setlist: test_setlist2>',]
 		)
 
-	def test_dissociate_type_to_song_not_associated(self):
-		Type.add_type('test_type')
-		test_type = Type.objects.get(type='test_type')
+	def test_dissociate_setlist_to_song_not_associated(self):
+		Setlist.add_setlist('test_setlist')
+		test_setlist = Setlist.objects.get(setlist='test_setlist')
 		Song.add_song_exiftool("Test Path/test.mp3")
 		test_song = Song.objects.get(title='Test_Title')
-		Database.dissociate_type_to_song(test_song.id, test_type.type)
+		Database.dissociate_setlist_to_song(test_song.id, test_setlist.setlist)
 		self.assertQuerysetEqual(
-			list(Type.objects.get(type='test_type').associated_songs.all()),[])
+			list(Setlist.objects.get(setlist='test_setlist').associated_songs.all()),[])
 		self.assertQuerysetEqual(
-			list(Song.objects.get(title='Test_Title').type_set.all()), [])
+			list(Song.objects.get(title='Test_Title').setlist_set.all()), [])
 
 # class UtilControlMethodTests(TestCase):
 # 	def test_update_db(self):

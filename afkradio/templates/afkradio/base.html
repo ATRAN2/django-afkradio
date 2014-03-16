@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>
+			{% block title%}{% endblock %}
+		</title>
+		<link rel="stylesheet" type="text/css" href="/static/afkradio/css/style.css" />
+	</head>
+	<body>
+		{% block nav %}
+		<nav>
+			<ul>
+				<li>{% block songs %}<a href="">poop1</a>{% endblock %}</li>
+				<li>{% block queue %}<a href="">poop2</a>{% endblock %}</li>
+				<li>{% block history %}<a href="">poop3</a>{% endblock %}</li>
+			</ul>
+		</nav>
+		{% endblock %}
+		<div class="content">
+			{% block content %}
+			{% endblock %}
+		</div>
+	</body>
+</html>
+

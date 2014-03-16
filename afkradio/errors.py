@@ -26,7 +26,7 @@ class SongNotFoundError( Exception ):
 		logging.error('SongNotFoundError ' + message)
 	pass
 
-class TypeNotFoundError( Exception ):
+class SetlistNotFoundError( Exception ):
 	def __init__(self, message):
 		logging.error('TypeNotFoundError ' + message)
 	pass

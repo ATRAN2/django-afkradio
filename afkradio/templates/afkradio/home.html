@@ -1,0 +1,17 @@
+{% extends "afkradio/base.html" %}
+
+{% block content %}
+<h1>Home</h1>
+
+{% if songs_list %}
+<ul>
+{% for song in songs_list %}
+	<li>{{ song.title }}</li>
+{% endfor %}
+</ul>
+{% else %}
+	<p> No songs are available </p>
+{% endif %}
+{% endblock content %}
+
+
