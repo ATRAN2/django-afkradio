@@ -83,8 +83,8 @@ class Song(models.Model):
 	filepath = models.CharField(max_length=500, blank=True)
 	date_added = models.DateTimeField('Date Added', null=True, blank=True)
 	extra = models.CharField(max_length=500, blank=True)
-	times_played = models.PositiveIntegerField(default=0)
-	times_faved = models.PositiveIntegerField(default=0)
+	playcount = models.PositiveIntegerField(default=0)
+	favecount = models.PositiveIntegerField(default=0)
 	objects = SongManager()
 
 	# add_song_exiftool method
@@ -254,17 +254,23 @@ class PlayHistoryManager(models.Manager):
 class PlayHistory(models.Model):
 	song_id = models.CharField(max_length=16)
 	played_time = models.DateTimeField('Time Played')
+
+	class Meta:
+		verbose_name = "Play History"
+		verbose_name_plural = "Play History"
 	
 	@classmethod
 	def add_song(cls, new_song_id, set_played_time):
 		new_song = cls(song_id = new_song_id, played_time = set_played_time)
 		new_song.save()
 
+	def song_title(self):
+		return Song.objects.get(id=self.song_id).title
+
 	def __unicode__(self):
 		return self.song_id
 
 class PlaylistManager(models.Manager):
-
 	# Get current song with precedence to user_requested songs
 	def current_song(self):
 		try:
@@ -299,8 +305,9 @@ class Playlist(models.Model):
 	user_requested = models.BooleanField(default=False)
 	objects = PlaylistManager()
 
-	def song_title(self):
-		return Song.objects.get(id=self.song_id).title
+	class Meta:
+		verbose_name = "Playlist Song"
+		verbose_name_plural = "Playlist Songs"
 
 	@classmethod
 	def add_song(cls, new_song_id, requested=False):
@@ -311,6 +318,9 @@ class Playlist(models.Model):
 				)
 		new_song.save()
 	
+	def song_title(self):
+		return Song.objects.get(id=self.song_id).title
+
 	def __unicode__(self):
 		return self.song_id
 

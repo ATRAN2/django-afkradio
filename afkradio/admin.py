@@ -13,20 +13,32 @@ class TypeInline(admin.TabularInline):
 
 class SongAdmin(admin.ModelAdmin):
 	list_per_page = 20
-	list_display = ('id', 'artist', 'title', 'album',)
+	list_display = ('id', 'artist', 'title', 'album', 'playcount', 'favecount')
 	search_fields = ['title']
 	inlines = [TypeInline]
 
-class PlaylistAdmin(admin.ModelAdmin):
-	def url_to_edit_song(self, object):
-		url = reverse('admin:afkradio_Playlist_change', args=[object.id])
-		return u'<a href="%s">Edit %s</a>' %(url, object.__unicode())
+class PlayHistoryAdmin(admin.ModelAdmin):
+	def song_title_edit(self, object):
+		url = reverse('admin:%s_%s_change' %(object._meta.app_label, 'song'), args=(object.song_id,))
+		title = object.song_title()
+		return u'<a href="%s">%s</a>' %(url, title)
 
 	list_per_page = 30
-	list_display = ('song_id', 'song_title', 'url_to_edit_song', 'user_requested', 'add_time')
+	list_display = ('song_id', 'song_title_edit', 'played_time')
+	song_title_edit.allow_tags=True
+
+class PlaylistAdmin(admin.ModelAdmin):
+	def song_title_edit(self, object):
+		url = reverse('admin:%s_%s_change' %(object._meta.app_label, 'song'), args=(object.song_id,))
+		title = object.song_title()
+		return u'<a href="%s">%s</a>' %(url, title)
+
+	list_per_page = 30
+	list_display = ('song_id', 'song_title_edit', 'user_requested', 'add_time')
 	ordering = ['-user_requested', 'add_time']
-	
+	song_title_edit.allow_tags = True
 
 admin.site.register(Song, SongAdmin)
 admin.site.register(Type, TypeAdmin)
 admin.site.register(Playlist, PlaylistAdmin)
+admin.site.register(PlayHistory, PlayHistoryAdmin)

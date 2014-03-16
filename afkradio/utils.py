@@ -59,8 +59,8 @@ class Playback:
 
 	@staticmethod
 	def mpc_delete(song_position=1):
-		proc = subprocess.Popen(["mpc", "del", song_position], stdout=NULL_DEVICE).wait()
-		return "Deleted the song in position " + song_position + " of the playlist"
+		proc = subprocess.Popen(["mpc", "del", str(song_position)], stdout=NULL_DEVICE).wait()
+		return "Deleted the song in position " + str(song_position) + " of the playlist"
 
 	@staticmethod
 	def mpc_currently_playing():
@@ -69,7 +69,7 @@ class Playback:
 		if line.startswith("volume: n/a"):
 			return "No song is currently playing"
 		else:
-			return line[0:-1]
+			return line[0:-1].decode('utf-8')
 
 class Database:
 	# update_song_db
@@ -173,6 +173,8 @@ class Control:
 	def run_stream(init=True, from_types=True):
 		logging.info('Stream has been initiated')
 		if init:
+			Playback.mpc_clear()
+			Playlist.objects.clear_playlist_full()
 			for song_count in range(int(PLAYLIST_SIZE)):
 				Control.add_random_song(from_types)
 		Playback.mpc_play()
@@ -190,7 +192,7 @@ class Control:
 						return
 					else:
 						Playlist.objects.current_song().delete()
-						new_song_id = Playlist.object.current_song().song_id
+						new_song_id = Playlist.objects.current_song().song_id
 						logging.info('Played ' + Playback.mpc_currently_playing() + \
 								'(Song ID: ' + new_song_id + ')')
 						PlayHistory.add_song(new_song_id, timezone.now())
@@ -199,7 +201,6 @@ class Control:
 						break
 				else:
 					continue
-	
 	
 class Config:
 	# Edits config.json file with new values. Takes a list that has values that
