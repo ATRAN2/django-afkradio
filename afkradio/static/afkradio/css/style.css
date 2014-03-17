@@ -93,8 +93,12 @@ div#sidebar-row-header {
 	font-weight: 900;
 }
 
-div.time-when-play {
-	width: 20%;
+div.timetable {
+	width: 15%;
+}
+
+div.sidebar-artist {
+	width: 37%;
 }
 
 /* End Playlist Sidebar Styles */

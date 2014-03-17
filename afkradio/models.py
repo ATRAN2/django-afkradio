@@ -343,6 +343,9 @@ class Playlist(models.Model):
 	def song_artist(self):
 		return Song.objects.get(id=self.song_id).artist
 
+	def song_duration(self):
+		return Song.objects.get(id=self.song_id).duration
+
 	def __unicode__(self):
 		return self.song_id
 
