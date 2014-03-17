@@ -38,9 +38,11 @@ class SongManager(models.Manager):
 		if song_check:
 			return True
 		else:
-			raise SongNotFoundError('The song with the ' + field + ' ' + song_query +
+			try:
+				raise SongNotFoundError('The song with the ' + field + ' ' + song_query +
 				' does not exist')
-			return False
+			except:
+				return False
 	
 	def check_if_id_exists(self, song_id):
 		try:
@@ -65,8 +67,10 @@ class SongManager(models.Manager):
 	def get_random_from_active_setlists(self):
 		active_songs = list(Setlist.objects.song_ids_of_active_setlists())
 		if not active_songs or not active_songs[0]:
-			raise SongNotFoundError( 'There are no songs associated to the active setlists' )
-			return False
+			try:
+				raise SongNotFoundError( 'There are no songs associated to the active setlists' )
+			except SongNotFoundError:
+				return False
 		else:
 			active_song_count = len(active_songs)
 			index = random.randint(0,active_song_count-1)
@@ -267,6 +271,9 @@ class PlayHistory(models.Model):
 	def song_title(self):
 		return Song.objects.get(id=self.song_id).title
 
+	def song_artist(self):
+		return Song.objects.get(id=self.song_id).title
+
 	def __unicode__(self):
 		return self.song_id
 
@@ -298,6 +305,18 @@ class PlaylistManager(models.Manager):
 	def queue_sorted(self):
 		return self.order_by('-user_requested', 'add_time')
 
+	def requested_sorted(self):
+		return self.filter(user_requested=True).order_by('add_time')
+
+	def unrequested_sorted(self):
+		return self.filter(user_requested=False).order_by('add_time')
+
+	def requested_count(self):
+		return self.filter(user_requested=True).count()
+
+	def unrequested_count(self):
+		return self.filter(user_requested=False).count()
+
 
 class Playlist(models.Model):
 	song_id = models.CharField(max_length=16)
@@ -320,6 +339,9 @@ class Playlist(models.Model):
 	
 	def song_title(self):
 		return Song.objects.get(id=self.song_id).title
+
+	def song_artist(self):
+		return Song.objects.get(id=self.song_id).artist
 
 	def __unicode__(self):
 		return self.song_id

@@ -4,5 +4,6 @@ from afkradio import views
 
 urlpatterns = patterns ('',
 		# ex:/afkradio/
-		url(r'^$', views.ListView.as_view(), name='index'),
+		url(r'^$', views.HomeView.as_view(), name='home'),
+		url(r'^Song/', views.SongView.as_view(), name='songs'),
 )

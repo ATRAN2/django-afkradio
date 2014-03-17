@@ -1,25 +1,61 @@
+{% load base_extra %}
+
 <!DOCTYPE html>
 <html>
 	<head>
 		<meta charset="utf-8">
 		<title>
-			{% block title%}{% endblock %}
+			{% block title %}{% endblock title %}
 		</title>
+		<script type="text/javascript"
+			src="http://code.jquery.com/jquery-latest.min.js">
+		</script>
 		<link rel="stylesheet" type="text/css" href="/static/afkradio/css/style.css" />
 	</head>
 	<body>
 		{% block nav %}
 		<nav>
 			<ul>
-				<li>{% block songs %}<a href="">poop1</a>{% endblock %}</li>
-				<li>{% block queue %}<a href="">poop2</a>{% endblock %}</li>
-				<li>{% block history %}<a href="">poop3</a>{% endblock %}</li>
+				<li id="home">{% block home %}<a href="">home</a>{% endblock %}</li>
+				<li>{% block songs %}<a href="{% url 'afkradio:songs' %}">Songs</a>{% endblock songs %}</li>
+				<li>{% block queue %}<a href="">poop2</a>{% endblock queue %}</li>
+				<li>{% block history %}<a href="">poop3</a>{% endblock history %}</li>
 			</ul>
 		</nav>
-		{% endblock %}
-		<div class="content">
-			{% block content %}
-			{% endblock %}
+		{% endblock nav %}
+		<div class="main-container">
+			<div class="content">
+				{% block content %}
+				{% endblock content %}
+			</div>
+			<div class="sidebar">
+				{% block sidebar %}
+				<h2 id="sidebar-title">Playlist</h2>
+				<div class="sidebar-table">
+					<div class="sidebar-row" id="sidebar-row-header">
+						<div>UTC</div>
+						<div>Artist</div>
+						<div>Title</div>
+					</div>
+					{% get_playlist_requested as playlist_requested %}
+					{% for song in playlist_requested %}
+					<div class="sidebar-row sidebar-requested">
+						<div class="time-when-play"></div>
+						<div>{{ song|get_song_artist|slice:":20" }}</div>
+						<div>{{ song|get_song_title|slice:":20" }}</div>
+					</div>
+					{% endfor %}
+					{% get_playlist_unrequested as playlist_unrequested %}
+					{% for song in playlist_unrequested %}
+					<div class="sidebar-row sidebar-unrequested">
+						<div class="time-when-play"></div>
+						<div>{{ song|get_song_artist|slice:":20"}}</div>
+						<div>{{ song|get_song_title|slice:":20"}}</div>
+					</div>
+					{% endfor %}
+					{% endblock sidebar %}
+				</div>
+			</div>
 		</div>
 	</body>
 </html>

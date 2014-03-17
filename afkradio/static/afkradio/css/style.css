@@ -1,12 +1,34 @@
-/* Start Body Styles */
+/* Start Body and Layout Styles */
 
 html, body {
 	font-family: "Helvetica Neue", Helvetica, Arial,  sans-serif;
-	font-size: 16px;
+	font-size: 100%;
 	margin: 0;
 	padding: 0;
 }
+
+div.main-container {
+	max-width: 960px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+div.content {
+	width: 65%;
+	float: left;
+	margin: 0px;
+}
+
+div.sidebar {
+	background-color: #5DCEC6;
+	width: 35%;
+	float:left;
+	margin: 0px;
+}
+
 /* End Body Styles */
+
+/* Start Nav Bar Styles */
 
 nav {
 	background-color: #33CEC3;
@@ -28,11 +50,51 @@ nav ul li {
 }
 
 nav ul li a {
+	color: white;
 	display: block;
 	text-decoration: none;
-	padding: 5px 15px 5px 15px;
+	padding: 0em 0.9375em;
 	white-space: nowrap;
-	height: 30px;
+	line-height: 40px;
+	height: 40px;
 	width: 60px;
+	vertical-align: middle;
 	text-align: center;
 }
+
+nav ul li a:hover {
+	background-color: #00665E;
+}
+
+/* Start Nav Bar Styles */
+
+/* Start Playlist Sidebar Styles */
+
+div.sidebar-table {
+	font-size: 0.75em;
+	margin: 0px;
+	padding: 2px 5px;
+	display: table;
+}
+
+div.sidebar-row {
+	display: table-row;
+}
+
+div.sidebar-row > div {
+	display: table-cell;
+}
+
+h2#sidebar-title {
+	margin: 0px;
+}
+
+div#sidebar-row-header {
+	font-weight: 900;
+}
+
+div.time-when-play {
+	width: 20%;
+}
+
+/* End Playlist Sidebar Styles */

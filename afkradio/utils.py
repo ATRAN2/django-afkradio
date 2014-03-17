@@ -137,14 +137,16 @@ class Control:
 			random_song = Song.objects.get_random_from_active_setlists()
 			log_setlisted = 'from setlists '
 			if not random_song:
-				if not Setlist.active_setlists():
-					raise SetlistNotFoundError('No Setlists are currently active. ' + \
-						'Ignoring setlists and playing a random song instead')
-				else:
-					raise SongNotFoundError('No songs associated to set active ' + \
-						'setlists.  Ignoring setlists and playing a random song instead')
-				random_song = Song.objects.get_random()
-				log_setlisted = ''
+				try:
+					if not Setlist.objects.active_setlists():
+						raise SetlistNotFoundError('No Setlists are currently active. ' + \
+							'Ignoring setlists and playing a random song instead')
+					else:
+						raise SongNotFoundError('No songs associated to set active ' + \
+							'setlists.  Ignoring setlists and playing a random song instead')
+				except (SetlistNotFoundError, SongNotFoundError):
+					random_song = Song.objects.get_random()
+					log_setlisted = ''
 		else:
 			random_song = Song.objects.get_random()
 			log_setlisted = ''
