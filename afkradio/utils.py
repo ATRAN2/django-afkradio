@@ -167,6 +167,10 @@ class Control:
 		logging.info('Scanned MPC root and updated Songs model and MPC playlist')
 		return dupe_list
 
+# 	@staticmethod
+# 	def request_song(song_id):
+		
+
 	# run_stream is the main stream method that will run mpc and keep it
 	# persistently listening to commands with mpc idle.  It plays songs in
 	# activated setlists by default, but if no setlists are active, then it will

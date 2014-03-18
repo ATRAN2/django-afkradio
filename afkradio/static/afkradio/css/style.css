@@ -30,8 +30,15 @@ div.sidebar {
 
 /* Start Nav Bar Styles */
 
-nav {
+div.nav-container {
+	width: 100%;
+	margin: 0 0;
 	background-color: #33CEC3;
+}
+
+nav {
+	max-width: 960px;
+	margin: 0 auto;
 	height: 40px;
 }
 
@@ -83,6 +90,7 @@ div.sidebar-row {
 
 div.sidebar-row > div {
 	display: table-cell;
+	padding: 0 2px;
 }
 
 h2#sidebar-title {

@@ -14,14 +14,16 @@
 	</head>
 	<body>
 		{% block nav %}
-		<nav>
-			<ul>
-				<li id="home">{% block home %}<a href="">home</a>{% endblock %}</li>
-				<li>{% block songs %}<a href="{% url 'afkradio:songs' %}">Songs</a>{% endblock songs %}</li>
-				<li>{% block queue %}<a href="">poop2</a>{% endblock queue %}</li>
-				<li>{% block history %}<a href="">poop3</a>{% endblock history %}</li>
-			</ul>
-		</nav>
+		<div class="nav-container">
+			<nav>
+				<ul>
+					<li id="home">{% block home %}<a href="">home</a>{% endblock %}</li>
+					<li>{% block songs %}<a href="{% url 'afkradio:songs' %}">Songs</a>{% endblock songs %}</li>
+					<li>{% block queue %}<a href="">poop2</a>{% endblock queue %}</li>
+					<li>{% block history %}<a href="">poop3</a>{% endblock history %}</li>
+				</ul>
+			</nav>
+		</div>
 		{% endblock nav %}
 		<div class="main-container">
 			<div class="content">
