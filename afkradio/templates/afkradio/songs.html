@@ -1,17 +1,54 @@
 {% extends "afkradio/base.html" %}
+{% load base_extra %}
 
 {% block content %}
-<h1>Songs</h1>
-<form action="{% url "afkradio:songsearch" %}" method="get">
-	<input type="text" name="search-query">
-	<input type="submit" value="Search">
-</form>
+<div class="subheading-container justify-container">
+	<div class="content-subheading justify-left">
+		<h1>Songs</h1>
+	</div>
+	<div class="content-search justify-right">
+		<form action="{% url "afkradio:songsearch" %}" method="get">
+			<input type="text" name="search-query">
+			<input type="submit" value="Search">
+		</form>
+	</div>
+</div>
 {% if songs_list %}
-<ul>
+<div class="content-table">
+	<div class="content-row" id="content-header">
+		<div class="song-id">ID</div>
+		<div class="song-artist">Artist</div>
+		<div class="song-title">Title</div>
+		<div class="song-playcount">Played</div>
+		<div class="song-favecount">Faved</div>
+		<div class="song-request">Request</div>
+	</div>
 {% for song in songs_list %}
-	<li>{{ song.title }}</li>
+	<div class="content-row">
+		<div class="song-id">{{ song.id }}</div>
+		<div class="song-artist">{{ song.artist }}</div>
+		<div class="song-title">{{ song.title  }}</div>
+		<div class="song-playcount">{{ song.playcount}}</div>
+		<div class="song-favecount">{{ song.favecount}}</div>
+		<div class="song-request">RQ</div>
+	</div>
 {% endfor %}
-</ul>
+</div>
+{% if is_paginated%}
+<div class="pagination">
+	<span class="page-links">
+	{% if page_obj.has_previous %}
+		<a href="{% url 'afkradio:songs' %}?page={{ page_obj.previous_page_number }}">Previous</a>
+	{% endif %}
+		<span class="page-current">
+			Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages}}
+		</span>
+	{% if page_obj.has_next %}
+		<a href="{% url 'afkradio:songs' %}?page={{ page_obj.next_page_number }}">Next</a>
+	{% endif %}
+	</span>
+</div>
+{% endif %}
 {% else %}
 	<p> No songs are available </p>
 {% endif %}

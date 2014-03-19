@@ -4,19 +4,28 @@ import datetime
 
 register = Library()
 
+@register.filter(name='shorten')
+def shorten(object, length):
+	to_shorten = object
+	if len(object) > length:
+		object= object[:length-3] + u'...'
+	return object
+
 @register.filter(name='get_song_title')
-def get_song_title(playlist_song, length):
+def get_song_title(playlist_song, length=None):
 	title = playlist_song.song_title()
-	if len(title) > length:
-		title = title[:length-3] + u'...'
-	return title
+	if not length:
+		return title
+	else:
+		return shorten(title, length)
 
 @register.filter(name='get_song_artist')
-def get_song_artist(playlist_song, length):
+def get_song_artist(playlist_song, length=None):
 	artist = playlist_song.song_artist()
-	if len(artist) > length:
-		artist = artist[:length-3] + u'...'
-	return artist
+	if not length:
+		return artist
+	else:
+		return shorten(artist, length)
 
 class PlaylistContentNode(Node):
 	def __init__(self, count, varname):
