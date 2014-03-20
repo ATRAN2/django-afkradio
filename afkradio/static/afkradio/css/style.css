@@ -5,6 +5,8 @@ html, body {
 		Helvetica, Verdana,
 		Arial, sans-serif;
 	font-size: 100%;
+	min-width: 960px;
+	width: 100%;
 	height: 100%;
 	margin: 0;
 	padding: 0;
@@ -23,7 +25,7 @@ div.main-container {
 }
 
 div.body-container {
-	max-width: 940px;
+	width: 940px;
 	overflow: auto;
 	margin: 0 auto;
 	padding: 0 5px 100px 5px;
@@ -41,7 +43,7 @@ div.sidebar {
 	width: 335px;
 	float: right;
 	margin: 10px 0px 0px 0px;
-	background-color: rgba(156, 233, 237, 0.6);
+	background-color: rgba(156, 233, 237, 0.4);
 	*background-color: #9CE9ED;
 }
 

@@ -1,0 +1,14 @@
+{% extends "afkradio/base.html" %}
+{% load base_extra %}
+
+{% block content %}
+{% if song %}
+<div class="content-table">
+	<p>poop</p>
+</div>
+{% else %}
+<p> Song with the ID {{ song.pk}} does not exist </p>
+{% endif %}
+{% endblock content %}
+
+

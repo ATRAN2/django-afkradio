@@ -108,7 +108,7 @@ class Database:
 			return associate_setlist
 		# Check if the Song exists
 		if Song.objects.check_if_id_exists(song_id) is True:
-			song_to_associate = Song.objects.get(id=song_id)
+			song_to_associate = Song.objects.get(pk=song_id)
 		else:
 			return song_id
 		setlist_to_associate.associated_songs.add(song_to_associate)
@@ -122,7 +122,7 @@ class Database:
 			return dissociate_setlist
 		# Check if the Song exists
 		if Song.objects.check_if_id_exists(song_id) is True:
-			song_to_dissociate = Song.objects.get(id=song_id)
+			song_to_dissociate = Song.objects.get(pk=song_id)
 		else:
 			return song_id
 		setlist_to_dissociate.associated_songs.remove(song_to_dissociate)

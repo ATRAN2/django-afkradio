@@ -31,3 +31,8 @@ class SongView(generic.ListView):
 
 	def get_queryset(self):
 		return Song.objects.all()
+
+class SingleSongView(generic.DetailView):
+	template_name = 'afkradio/singlesong.html'
+	model = Song
+	context_object_name = 'song'

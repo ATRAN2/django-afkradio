@@ -22,6 +22,7 @@ class ModelSongMethodTests(TestCase):
 				'Test_Title' : 'title',
 				'Test_Artist' : 'artist',
 				'Test_Album' : 'album',
+				'genre' : 'genre',
 				'1111' : 'year',
 				'0:04:13' : 'duration',
 				'Test Path/test.mp3' : 'filepath',
@@ -64,10 +65,8 @@ class ModelSongMethodTests(TestCase):
 		Song.add_song_exiftool("Test Path/test.mp3", "Test_Extra")
 		self.assertTrue(Song.objects.check_if_exists("Test_Title", 'title'))
 		self.assertTrue(Song.objects.check_if_exists("Test_Artist", 'artist'))
-		with self.assertRaises(SongNotFoundError):
-			Song.objects.check_if_exists("Test_Album", 'extra')
-		with self.assertRaises(SongNotFoundError):
-			Song.objects.check_if_exists("2222", 'year')
+		self.assertFalse(Song.objects.check_if_exists("Test_Album", 'extra'))
+		self.assertFalse(Song.objects.check_if_exists("2222", 'year'))
 		with self.assertRaises(FieldNotFoundError):
 			Song.objects.check_if_exists("95328", 'NotAValidField')
 
@@ -85,16 +84,14 @@ class ModelSongMethodTests(TestCase):
 		self.assertTrue(Song.objects.check_if_id_exists(random_song.id))
 
 	def test_get_random_from_active_setlists(self):
-		with self.assertRaises(SongNotFoundError):
-			Song.objects.get_random_from_active_setlists()
+		self.assertFalse(Song.objects.get_random_from_active_setlists())
 		Database.update_song_db()
 		Setlist.add_setlist('Test_Setlist1')
 		Setlist.add_setlist('Test_Setlist2')
 		Setlist.add_setlist('Test_Setlist3')
 		Setlist.objects.activate_setlist('Test_Setlist1')
 		Setlist.objects.activate_setlist('Test_Setlist3')
-		with self.assertRaises(SongNotFoundError):
-			Song.objects.get_random_from_active_setlists()
+		self.assertFalse(Song.objects.get_random_from_active_setlists())
 		Database.associate_setlist_to_song('1', 'Test_Setlist1')
 		Database.associate_setlist_to_song('2', 'Test_Setlist1')
 		Database.associate_setlist_to_song('3', 'Test_Setlist2')
@@ -289,8 +286,8 @@ class UtilDatabaseMethodTests(TestCase):
 		test_setlist2 = Setlist.objects.get(setlist='test_setlist2')
 		Song.add_song_exiftool("Test Path/test.mp3")
 		Song.add_song_exiftool("Test Path/test2.mp3")
-		test_song1 = Song.objects.get(id=1)
-		test_song2 = Song.objects.get(id=2)
+		test_song1 = Song.objects.get(pk=1)
+		test_song2 = Song.objects.get(pk=2)
 		Database.associate_setlist_to_song(test_song1.id, test_setlist1.setlist)
 		Database.associate_setlist_to_song(test_song1.id, test_setlist2.setlist)
 		Database.associate_setlist_to_song(test_song2.id, test_setlist1.setlist)
@@ -304,11 +301,11 @@ class UtilDatabaseMethodTests(TestCase):
 			['<Song: Test_Title>', '<Song: Test_Title>',]
 		)
 		self.assertQuerysetEqual(
-			list(Song.objects.get(id=1).setlist_set.all()),
+			list(Song.objects.get(pk=1).setlist_set.all()),
 			['<Setlist: test_setlist1>', '<Setlist: test_setlist2>',]
 		)
 		self.assertQuerysetEqual(
-			list(Song.objects.get(id=2).setlist_set.all()),
+			list(Song.objects.get(pk=2).setlist_set.all()),
 			['<Setlist: test_setlist1>', '<Setlist: test_setlist2>',]
 		)
 
@@ -334,8 +331,8 @@ class UtilDatabaseMethodTests(TestCase):
 		test_setlist2 = Setlist.objects.get(setlist='test_setlist2')
 		Song.add_song_exiftool("Test Path/test.mp3")
 		Song.add_song_exiftool("Test Path/test2.mp3")
-		test_song1 = Song.objects.get(id=1)
-		test_song2 = Song.objects.get(id=2)
+		test_song1 = Song.objects.get(pk=1)
+		test_song2 = Song.objects.get(pk=2)
 		Database.associate_setlist_to_song(test_song1.id, test_setlist1.setlist)
 		Database.associate_setlist_to_song(test_song1.id, test_setlist2.setlist)
 		Database.associate_setlist_to_song(test_song2.id, test_setlist1.setlist)
@@ -345,7 +342,7 @@ class UtilDatabaseMethodTests(TestCase):
 			['<Song: Test_Title>', '<Song: Test_Title>',]
 		)
 		self.assertQuerysetEqual(
-			list(Song.objects.get(id=1).setlist_set.all()),
+			list(Song.objects.get(pk=1).setlist_set.all()),
 			['<Setlist: test_setlist1>', '<Setlist: test_setlist2>',]
 		)
 		Database.dissociate_setlist_to_song(test_song1.id, test_setlist1.setlist)
@@ -354,7 +351,7 @@ class UtilDatabaseMethodTests(TestCase):
 			['<Song: Test_Title>',]
 		)
 		self.assertQuerysetEqual(
-			list(Song.objects.get(id=1).setlist_set.all()),
+			list(Song.objects.get(pk=1).setlist_set.all()),
 			['<Setlist: test_setlist2>',]
 		)
 		self.assertQuerysetEqual(
@@ -362,7 +359,7 @@ class UtilDatabaseMethodTests(TestCase):
 			['<Song: Test_Title>', '<Song: Test_Title>',]
 		)
 		self.assertQuerysetEqual(
-			list(Song.objects.get(id=2).setlist_set.all()),
+			list(Song.objects.get(pk=2).setlist_set.all()),
 			['<Setlist: test_setlist1>', '<Setlist: test_setlist2>',]
 		)
 

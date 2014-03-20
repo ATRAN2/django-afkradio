@@ -1,4 +1,5 @@
 {
-  "MPD DB root": "/home/reinforce/music/", 
+  "MPD DB root": "/home/reinforce/music/",
+  "Static file root": "/var/www/weeabros.com/static",
   "Playlist size": "30"
 }

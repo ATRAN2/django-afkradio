@@ -13,6 +13,7 @@ APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(APP_ROOT,'config.json')) as config_file:
 	config_data = json.load(config_file)
 	MPD_DB_ROOT = config_data['MPD DB root']
+	STATIC_FILE_ROOT = config_data['Static file root']
 
 
 # Songs Model
@@ -46,12 +47,11 @@ class SongManager(models.Manager):
 	
 	def check_if_id_exists(self, song_id):
 		try:
-			self.get(id=song_id)
+			self.get(pk=song_id)
 			return True
 		except Song.DoesNotExist:
 			raise SongNotFoundError('The song with the id ' + song_id +
 				' does not exist')
-			return False
 	
 	def get_random(self):
 		if self.count():
@@ -62,7 +62,6 @@ class SongManager(models.Manager):
 			raise SongNotFoundError( 'There are no songs in the database yet. Please click ' + \
 				'Update Database in the admin panel or run Control.scan_for_songs() in ' + \
 				' afkradio.utils from the shell' )
-			return False
 
 	def get_random_from_active_setlists(self):
 		active_songs = list(Setlist.objects.song_ids_of_active_setlists())
@@ -75,7 +74,7 @@ class SongManager(models.Manager):
 			active_song_count = len(active_songs)
 			index = random.randint(0,active_song_count-1)
 			random_active_song_id = active_songs[index]
-			return self.get(id=random_active_song_id)
+			return self.get(pk=random_active_song_id)
 
 
 class Song(models.Model):
@@ -83,8 +82,10 @@ class Song(models.Model):
 	artist = models.CharField(max_length=200, blank=True)
 	album = models.CharField(max_length=200, blank=True)
 	year = models.CharField(max_length=20, blank=True)
+	genre = models.CharField(max_length=50, blank=True)
 	duration = models.CharField(max_length=20, blank=True)
 	filepath = models.CharField(max_length=500, blank=True)
+	artpath = models.CharField(max_length=500, blank=True)
 	date_added = models.DateTimeField('Date Added', null=True, blank=True)
 	extra = models.CharField(max_length=500, blank=True)
 	playcount = models.PositiveIntegerField(default=0)
@@ -107,25 +108,28 @@ class Song(models.Model):
 		if cls.objects.filter(filepath=rel_song_path):
 			raise DuplicateEntryError("There is already a song with the same path in the database: " +
 					abs_song_path)
-			return abs_song_path
 		# Create our new song instance and tie fields to variables
 		new_song = cls()
 		# Get absolute path of song
 		abs_song_path = os.path.join(MPD_DB_ROOT, rel_song_path)
 		# List supported file types in supported_file_types
 		supported_file_types = ('MP3', 'OGG', 'FLAC',)
+		# image_suffix to hold and later check if there's an image embedded in the song 
+		image_suffix = ''
 		# Dict of metadata that we want from exiftool and corresponding fields
 		# Keys are exiftool labels for the metadata
 		# Values are the corresponding field names of our new Songs model object
 		metadata_dict = {
-				'Title' : 'title',
-				'Album' : 'album',
 				'Year' : 'year',
+				'Genre' : 'genre',
+				'Album' : 'album',
+				'Title' : 'title',
 				'Artist' : 'artist',
 				'Duration' : 'duration',
 				}
 		# Run exiftool on the song
-		proc = subprocess.Popen([APP_ROOT + '/exiftool/exiftool', abs_song_path],
+		exiftool_path = APP_ROOT + '/exiftool/exiftool'
+		proc = subprocess.Popen([exiftool_path, abs_song_path],
 				 stderr = subprocess.STDOUT,
 				 stdout = subprocess.PIPE)
 		while True:
@@ -133,7 +137,6 @@ class Song(models.Model):
 			# Halt if no file was found in the rel_song_path
 			if line.startswith('File not found'):
 				raise FileNotFoundError("File not found: " + abs_song_path)
-				return abs_song_path
 			# Halt if the file is not a supported file type
 			elif line.startswith('File Type'):
 				colon_index = line.find(':')
@@ -141,10 +144,10 @@ class Song(models.Model):
 				file_type = exiftool_metadata_contents
 				if file_type not in supported_file_types:
 					raise FileTypeError(
-						'Not a supported file type. "' + file_type + '" is not ' 
-						+ str(supported_file_types)
+						'Not a supported file type. The song located at "' + abs_song_path + \
+							' is  a ' + file_type + '" which is not ' + \
+							str(supported_file_types)
 					)
-					return abs_file_path
 			elif line !='':
 				# Get any metadata we can find from the song that's one of the
 				# metadata entries defined in metadata_dict
@@ -155,6 +158,14 @@ class Song(models.Model):
 						# Set field to the exiftool metadata we found
 						setattr(new_song, metadata_dict[metadata_entry],
 								exiftool_metadata_contents)
+					# Check if there's embedded art
+					elif line.startswith('Picture Mime Type'):
+						colon_index = line.find('/')
+						image_type = line[(colon_index+1):-1]
+						if image_type == 'png':
+							image_suffix = 'png'
+						elif image_type == 'jpeg':
+							image_suffix = 'jpg'
 			else:
 				break
 		# exiftool has (approx) after duration.  Let's get rid of it
@@ -171,6 +182,20 @@ class Song(models.Model):
 		if extra is not None and not '':
 			new_song.extra = extra
 		new_song.save()
+		# Save embedded image to static folder if we got one
+		if image_suffix:
+			dir_name = os.path.join(STATIC_FILE_ROOT, 'afkradio/album_art')
+			base_filename = str(new_song.pk)
+			filename_suffix = '.' + image_suffix
+			image_path = os.path.join(dir_name, base_filename + filename_suffix)
+			with open(image_path, 'wb') as image_out:
+				save_proc = subprocess.Popen([exiftool_path, '-b', abs_song_path],
+						 stderr = subprocess.PIPE,
+						 stdout = image_out)
+			# Add image path to artpath
+			new_song.artpath = image_path
+			new_song.save()
+
 
 	def __unicode__(self):
 		try:
@@ -194,7 +219,6 @@ class SetlistManager(models.Manager):
 		except Setlist.DoesNotExist:
 			raise SetlistNotFoundError('The Setlist with the setlist' + check_setlist + \
 				' does not exist')
-			return False
 
 	def activate_setlist(self, setlist_to_activate):
 		if self.check_if_exists(setlist_to_activate):
@@ -269,10 +293,10 @@ class PlayHistory(models.Model):
 		new_song.save()
 
 	def song_title(self):
-		return Song.objects.get(id=self.song_id).title
+		return Song.objects.get(pk=self.song_id).title
 
 	def song_artist(self):
-		return Song.objects.get(id=self.song_id).title
+		return Song.objects.get(pk=self.song_id).title
 
 	def __unicode__(self):
 		return self.song_id
@@ -285,7 +309,6 @@ class PlaylistManager(models.Manager):
 			return current_song
 		except Playlist.DoesNotExist:
 			raise SongNotFoundError('There are no songs in the Playlist')
-			return False
 
 	# Get next song with precedence to user_requested songs
 	def next_song(self):
@@ -294,7 +317,6 @@ class PlaylistManager(models.Manager):
 			return next_song
 		except Playlist.DoesNotExist:
 			raise SongNotFoundError('Next song does not exist in the Playlist')
-			return False
 
 	def clear_playlist_full(self):
 		self.all().delete()
@@ -338,13 +360,13 @@ class Playlist(models.Model):
 		new_song.save()
 	
 	def song_title(self):
-		return Song.objects.get(id=self.song_id).title
+		return Song.objects.get(pk=self.song_id).title
 
 	def song_artist(self):
-		return Song.objects.get(id=self.song_id).artist
+		return Song.objects.get(pk=self.song_id).artist
 
 	def song_duration(self):
-		return Song.objects.get(id=self.song_id).duration
+		return Song.objects.get(pk=self.song_id).duration
 
 	def __unicode__(self):
 		return self.song_id
