@@ -327,6 +327,9 @@ class PlaylistManager(models.Manager):
 	def queue_sorted(self):
 		return self.order_by('-user_requested', 'add_time')
 
+	def queue_sorted_song_id(self):
+		return self.order_by('-user_requested', 'add_time').values_list('song_id', flat=True)
+
 	def requested_sorted(self):
 		return self.filter(user_requested=True).order_by('add_time')
 
@@ -339,6 +342,11 @@ class PlaylistManager(models.Manager):
 	def unrequested_count(self):
 		return self.filter(user_requested=False).count()
 
+	def last_song(self):
+		last_song = self.filter(user_requested=False).latest('add_time')
+		if not last_song:
+			last_song = self.filter(user_requested=True).latest('add_time')
+		return last_song
 
 class Playlist(models.Model):
 	song_id = models.CharField(max_length=16)

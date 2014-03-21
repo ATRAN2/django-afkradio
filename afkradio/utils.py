@@ -1,6 +1,7 @@
 from afkradio.models import Song, Setlist, PlayHistory, Playlist
 from afkradio.errors import *
 from django.utils import timezone
+from django.utils.encoding import smart_str, smart_unicode
 from time import sleep
 import logging
 import json
@@ -54,7 +55,7 @@ class Playback:
 
 	@staticmethod
 	def mpc_add(song_path):
-		proc = subprocess.Popen(["mpc", "add", song_path], stdout=NULL_DEVICE).wait()
+		proc = subprocess.Popen(["mpc", "add", smart_str(song_path)], stdout=NULL_DEVICE).wait()
 		return "Added " + song_path + " to the playlist"
 
 	@staticmethod
@@ -167,9 +168,15 @@ class Control:
 		logging.info('Scanned MPC root and updated Songs model and MPC playlist')
 		return dupe_list
 
-# 	@staticmethod
-# 	def request_song(song_id):
-		
+	@staticmethod
+	def request_song(song_id):
+		Playlist.objects.last_song().delete()
+		Playlist.add_song(song_id, True)
+		Playback.mpc_crop()
+		sorted_playlist_song_ids = Playlist.objects.queue_sorted_song_id()[1:]
+		for playlist_song_id in sorted_playlist_song_ids:
+			song_path = Song.objects.get(pk=playlist_song_id).filepath
+			Playback.mpc_add(song_path)
 
 	# run_stream is the main stream method that will run mpc and keep it
 	# persistently listening to commands with mpc idle.  It plays songs in

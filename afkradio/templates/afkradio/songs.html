@@ -30,7 +30,13 @@
 		<div class="song-title">{{ song.title  }}</div>
 		<div class="song-playcount">{{ song.playcount}}</div>
 		<div class="song-favecount">{{ song.favecount}}</div>
-		<div class="song-request">RQ</div>
+		<div class="song-request">
+			<form action="" method="post">
+				{% csrf_token %}
+				<input type="hidden" value="{{ song.pk }}" name="req_song_id" />
+				<input type="submit" value="Click" name="req_button" />
+			</form>
+		</div>
 	</div>
 {% endfor %}
 </div>
