@@ -11,8 +11,19 @@ import logging
 def search(request):
 	if 'search-query' in request.GET and request.GET['search-query']:
 		query = request.GET['search-query']
+		songs_list = Song.objects.filter(title__icontains=query)
+		return render_to_response('afkradio/songs.html', \
+				{'songs_list':songs_list, 'query':query})
+	else:
+		message = 'You searched for: %r' % request.GET['search-query'] + \
+			' Please submit a valid search term.'
+	return HttpResponse(message)
+
+def artist(request):
+	if 'artist-query' in request.GET and request.GET['artist-query']:
+		query = request.GET['artist-query']
 		songs = Song.objects.filter(title__icontains=query)
-		return render_to_response('search_results.html', \
+		return render_to_response('afkradio/songs.html', \
 				{'songs':songs, 'query': query})
 	else:
 		message = 'You searched for: %r' % request.GET['search-query'] + \

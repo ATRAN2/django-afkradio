@@ -8,4 +8,6 @@ urlpatterns = patterns ('',
 		url(r'^song/$', views.SongView.as_view(), name='songs'),
 		url(r'^song/(?P<pk>\d+)/$', views.SingleSongView.as_view(), name='singlesong'),
 		url(r'^search/$', views.search, name='songsearch'),
+		url(r'^artist/$', views.artist, name='artist'),
+
 )

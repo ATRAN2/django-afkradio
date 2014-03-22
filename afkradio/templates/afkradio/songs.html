@@ -27,7 +27,9 @@
 	<div class="content-row">
 		<div class="song-id">{{ song.pk }}</div>
 		<div class="song-artist">{{ song.artist }}</div>
-		<div class="song-title">{{ song.title  }}</div>
+		<div class="song-title">
+			<a href="{% url 'afkradio:singlesong' song.id %}">{{ song.title  }}</a>
+		</div>
 		<div class="song-playcount">{{ song.playcount}}</div>
 		<div class="song-favecount">{{ song.favecount}}</div>
 		<div class="song-request">
@@ -56,7 +58,11 @@
 </div>
 {% endif %}
 {% else %}
-	<p> No songs are available </p>
+	{% if query %}
+		<p> No songs found with search query "{{ query }}"</p>
+	{% else %}
+		<p> No songs found in database </p>
+	{% endif %}
 {% endif %}
 {% endblock content %}
 

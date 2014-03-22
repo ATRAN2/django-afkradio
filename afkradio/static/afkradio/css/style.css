@@ -253,6 +253,10 @@ div.sidebar-table {
 	display: table;
 }
 
+div.sidebar-requested {
+	font-weight: 800;
+}
+
 div.sidebar-row {
 	display: table-row;
 }
