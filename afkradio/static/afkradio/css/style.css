@@ -16,6 +16,15 @@ body {
 	background-color: #262626; /* Below Footer background color */
 }
 
+a {
+	color: black;
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
 div.main-container {
 	width: 100%;
 	min-height: 100%;
@@ -299,5 +308,11 @@ div.sidebar-title {
 div.pagination {
 	text-align: right;
 }
+
+a.previous, a.next {
+	font-weight: 700;
+}
+
+
 /* End Pagination Styles */
 

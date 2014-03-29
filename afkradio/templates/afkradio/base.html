@@ -5,7 +5,7 @@
 	<head>
 		<meta charset="utf-8">
 		<title>
-			{% block title %}{% endblock title %}
+			{% block title %}AFK-Radio{% endblock title %}
 		</title>
 		<script type="text/javascript"
 			src="http://code.jquery.com/jquery-latest.min.js">
@@ -31,6 +31,23 @@
 				<div class="content">
 					{% block content %}
 					{% endblock content %}
+					{% block pagination %}
+						{% if is_paginated %}
+						<div class="pagination">
+						     <span class="page-links">
+						     {% if page_obj.has_previous %}
+							 <a class="previous" href="{% url 'afkradio:songs' %}?page={{ page_obj.previous_page_number }}">Previous</a>
+						     {% endif %}
+						         <span class="page-current">
+						             Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages}}
+						         </span>
+						     {% if page_obj.has_next %}
+						         <a class="next" href="{% url 'afkradio:songs' %}?page={{ page_obj.next_page_number }}">Next</a>
+						     {% endif %}
+						     </span>
+						 </div>
+						 {% endif %}
+					{% endblock pagination %}
 				</div>
 				<div class="sidebar">
 					{% block sidebar %}
@@ -50,7 +67,7 @@
 						{% endif %}
 							<div class="timetable">{{ play_time }}</div>
 							<div class="sidebar-artist">{{ song|get_song_artist }}</div>
-							<div class="sidebar-title">{{ song|get_song_title }}</div>
+							<div class="sidebar-title"><a href="{% url 'afkradio:singlesong' song.song_id %}">{{ song|get_song_title }}</a></div>
 						</div>
 						{% endfor %}
 						{% endblock sidebar %}

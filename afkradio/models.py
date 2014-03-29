@@ -81,6 +81,7 @@ class Song(models.Model):
 	title = models.CharField(max_length=200, blank=True)
 	artist = models.CharField(max_length=200, blank=True)
 	album = models.CharField(max_length=200, blank=True)
+	trackno = models.CharField(max_length=20, blank=True)
 	year = models.CharField(max_length=20, blank=True)
 	genre = models.CharField(max_length=50, blank=True)
 	duration = models.CharField(max_length=20, blank=True)
@@ -126,6 +127,7 @@ class Song(models.Model):
 				'Title' : 'title',
 				'Artist' : 'artist',
 				'Duration' : 'duration',
+				'Track' : 'trackno',
 				}
 		# Run exiftool on the song
 		exiftool_path = APP_ROOT + '/exiftool/exiftool'

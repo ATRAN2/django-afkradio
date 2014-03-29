@@ -1,12 +1,12 @@
 {% extends "afkradio/base.html" %}
 {% load base_extra %}
 
-{% block title %}AFK-radio Songs {% endblock %}
+{% block title %}AFK-radio | Artist - {{ query }} {% endblock %}
 
 {% block content %}
 <div class="subheading-container justify-container">
 	<div class="content-subheading justify-left">
-		<h1>Songs</h1>
+		<h1>{{ query }}</h1>
 	</div>
 	<div class="content-search justify-right">
 		<form action="{% url "afkradio:songsearch" %}" method="get">
@@ -18,16 +18,17 @@
 {% if songs_list %}
 <div class="content-table">
 	<div class="content-row" id="content-header">
-		<div class="song-id">ID</div>
-		<div class="song-artist">Artist</div>
+		<div class="song-trackno">Track #</div>
 		<div class="song-title">Title</div>
+		<div class="song-album">Album</div>
+		<div class="song-year">Year</div>
 		<div class="song-playcount">Played</div>
 		<div class="song-favecount">Faved</div>
 		<div class="song-request">Request</div>
 	</div>
 {% for song in songs_list %}
 	<div class="content-row">
-		<div class="song-id">{{ song.pk }}</div>
+		<div class="song-trackno">{{ song.trackno }}</div>
 		<div class="song-artist">{{ song.artist }}</div>
 		<div class="song-title">
 			<a href="{% url 'afkradio:singlesong' song.id %}">{{ song.title  }}</a>
