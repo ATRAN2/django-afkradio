@@ -16,37 +16,49 @@
 	<body>
 		<div class="main-container">
 			{% block nav %}
-			<div class="nav-container">
-				<nav>
-					<ul>
-						<li id="home">{% block home %}<a href="">home</a>{% endblock %}</li>
-						<li>{% block songs %}<a href="{% url 'afkradio:songs' %}">Songs</a>{% endblock songs %}</li>
-						<li>{% block queue %}<a href="">poop2</a>{% endblock queue %}</li>
-						<li>{% block history %}<a href="">poop3</a>{% endblock history %}</li>
-					</ul>
-				</nav>
-			</div>
+			<div class="header-container">
+				<div class="nav-container clearflix">
+					<nav>
+						<ul>
+							<li id="home">{% block home %}<a href="">home</a>{% endblock %}</li>
+							<li>{% block songs %}<a href="{% url 'afkradio:songs' %}">Songs</a>{% endblock songs %}</li>
+							<li>{% block queue %}<a href="">poop2</a>{% endblock queue %}</li>
+							<li>{% block history %}<a href="">poop3</a>{% endblock history %}</li>
+						</ul>
+					</nav>
+					<div class="content-search">
+						<form action="{% url "afkradio:search" %}" method="get">
+							<input type="text" name="query">
+							<input type="submit" value="Search">
+						</form>
+					</div>
+				</div>
+			</div><div class="clear"></div>
 			{% endblock nav %}
 			<div class="body-container">
 				<div class="content">
 					{% block content %}
 					{% endblock content %}
 					{% block pagination %}
-						{% if is_paginated %}
+					{% if page_obj %}
+						{% if page_obj.has_other_pages %}
 						<div class="pagination">
 						     <span class="page-links">
 						     {% if page_obj.has_previous %}
-							 <a class="previous" href="{% url 'afkradio:songs' %}?page={{ page_obj.previous_page_number }}">Previous</a>
+							 <a class="previous" href="
+								 {% block pagination_url_prev %}{% url 'afkradio:songs' %}?{% endblock pagination_url_prev %}page={{ page_obj.previous_page_number }}">Previous</a>
 						     {% endif %}
 						         <span class="page-current">
 						             Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages}}
 						         </span>
 						     {% if page_obj.has_next %}
-						         <a class="next" href="{% url 'afkradio:songs' %}?page={{ page_obj.next_page_number }}">Next</a>
+							 <a class="next" href="
+								 {% block pagination_url_next %}{% url 'afkradio:songs' %}?{% endblock pagination_url_next %}page={{ page_obj.next_page_number }}">Next</a>
 						     {% endif %}
 						     </span>
 						 </div>
 						 {% endif %}
+					{% endif %}
 					{% endblock pagination %}
 				</div>
 				<div class="sidebar">
@@ -66,13 +78,18 @@
 						<div class="sidebar-row sidebar-unrequested">
 						{% endif %}
 							<div class="timetable">{{ play_time }}</div>
-							<div class="sidebar-artist">{{ song|get_song_artist }}</div>
-							<div class="sidebar-title"><a href="{% url 'afkradio:singlesong' song.song_id %}">{{ song|get_song_title }}</a></div>
+							<div class="sidebar-artist">
+								<a href="{% url 'afkradio:artist' %}?name={{ song|get_song_artist }}">{{ song|get_song_artist }}</a>
+							</div>
+							<div class="sidebar-title">
+								<a href="{% url 'afkradio:singlesong' song.song_id %}">{{ song|get_song_title }}</a>
+							</div>
 						</div>
 						{% endfor %}
 						{% endblock sidebar %}
 					</div>
 				</div>
+
 				<div class="clear"></div>
 			</div>
 		</div>

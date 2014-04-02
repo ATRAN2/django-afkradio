@@ -1,24 +1,17 @@
 {% extends "afkradio/base.html" %}
 {% load base_extra %}
 
-{% block title %}AFK-radio | Artist - {{ query }} {% endblock %}
+{% block title %}{{ block.super }} | Artist - {{ query }} {% endblock %}
 
 {% block content %}
-<div class="subheading-container justify-container">
-	<div class="content-subheading justify-left">
+<div class="subheading-container">
+	<div class="content-subheading">
 		<h1>{{ query }}</h1>
-	</div>
-	<div class="content-search justify-right">
-		<form action="{% url "afkradio:songsearch" %}" method="get">
-			<input type="text" name="query">
-			<input type="submit" value="Search">
-		</form>
 	</div>
 </div>
 {% if songs_list %}
 <div class="content-table">
 	<div class="content-row" id="content-header">
-		<div class="song-trackno">Track #</div>
 		<div class="song-title">Title</div>
 		<div class="song-album">Album</div>
 		<div class="song-year">Year</div>
@@ -28,11 +21,13 @@
 	</div>
 {% for song in songs_list %}
 	<div class="content-row">
-		<div class="song-trackno">{{ song.trackno }}</div>
-		<div class="song-artist">{{ song.artist }}</div>
 		<div class="song-title">
 			<a href="{% url 'afkradio:singlesong' song.id %}">{{ song.title  }}</a>
 		</div>
+		<div class="song-album">
+			<a href="{% url 'afkradio:album' %}?name={{ song.album }}">{{ song.album }}</a>
+		</div>
+		<div class="song-year">{{ song.year }}</div>
 		<div class="song-playcount">{{ song.playcount}}</div>
 		<div class="song-favecount">{{ song.favecount}}</div>
 		<div class="song-request">

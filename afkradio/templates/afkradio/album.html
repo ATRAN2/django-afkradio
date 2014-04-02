@@ -1,33 +1,43 @@
 {% extends "afkradio/base.html" %}
 {% load base_extra %}
 
-{% block title %}{{ block.super }} | Songs {% endblock %}
+{% block title %}{{ block.super }} | Album - {{ query }} {% endblock %}
 
 {% block content %}
+{% if songs_list.0.artpath %}
 <div class="subheading-container">
-	<div class="content-subheading">
-		<h1>Songs</h1>
+	<div class="left-75-subheading">
+		<h1>{{ query }} ({{ songs_list.0.year }})</h1>
+	</div>
+	<div class="right-25-subheading">
+		<img class="subheading-image" src="{{ songs_list.0.artpath }}" alt="Album Art for {{ query }}" />
 	</div>
 </div>
+{% else %}
+<div class="subheading-container">
+	<div class="content-subheading">
+		<h1>{{ query }} ({{ songs_list.0.year }})</h1>
+	</div>
+</div>
+{% endif %}
 {% if songs_list %}
 <div class="content-table">
 	<div class="content-row" id="content-header">
-		<div class="song-id">ID</div>
-		<div class="song-artist">Artist</div>
+		<div class="song-trackno">Track #</div>
 		<div class="song-title">Title</div>
+		<div class="song-artist">Artist</div>
 		<div class="song-playcount">Played</div>
 		<div class="song-favecount">Faved</div>
 		<div class="song-request">Request</div>
 	</div>
 {% for song in songs_list %}
 	<div class="content-row">
-		<div class="song-id">{{ song.pk }}</div>
-		<div class="song-artist">
-			<a href="{% url 'afkradio:artist' %}?name={{song.artist}}">{{ song.artist }}</a>
-		</div>
+		<div class="song-trackno">{{ song.trackno }}</div>
 		<div class="song-title">
 			<a href="{% url 'afkradio:singlesong' song.id %}">{{ song.title  }}</a>
 		</div>
+		<div class="song-artist">
+			<a href="{% url 'afkradio:artist' %}?name={{ song.artist }}">{{ song.artist}}</a></div>
 		<div class="song-playcount">{{ song.playcount}}</div>
 		<div class="song-favecount">{{ song.favecount}}</div>
 		<div class="song-request">
@@ -42,18 +52,10 @@
 </div>
 <div class="no-display">
 {% block pagination_url_prev %}
-	{% if search %}
-		{% url 'afkradio:search' %}?query={{ query }}&amp;
-	{% else %}
-		{{ block.super }}
-	{% endif %}
+	{% url 'afkradio:album' %}?name={{ query }}&amp;
 {% endblock pagination_url_prev %}
 {% block pagination_url_next %}
-	{% if search %}
-		{% url 'afkradio:search' %}?query={{ query }}&amp;
-	{% else %}
-		{{ block.super }}
-	{% endif %}
+	{% url 'afkradio:album' %}?name={{ query }}&amp;
 {% endblock pagination_url_next %}
 </div>
 {% else %}

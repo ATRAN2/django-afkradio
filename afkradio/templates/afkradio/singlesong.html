@@ -2,7 +2,7 @@
 {% load base_extra %}
 
 {% block title %}
-	AFK-Radio Song Info | 
+	{{ block.super }} Song Info | 
 	{% if song %}
 		{{ song.artist }} - {{ song.title }}
 	{% else %}

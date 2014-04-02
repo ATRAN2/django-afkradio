@@ -81,7 +81,7 @@ class Song(models.Model):
 	title = models.CharField(max_length=200, blank=True)
 	artist = models.CharField(max_length=200, blank=True)
 	album = models.CharField(max_length=200, blank=True)
-	trackno = models.CharField(max_length=20, blank=True)
+	trackno = models.IntegerField(null=True)
 	year = models.CharField(max_length=20, blank=True)
 	genre = models.CharField(max_length=50, blank=True)
 	duration = models.CharField(max_length=20, blank=True)
@@ -129,6 +129,8 @@ class Song(models.Model):
 				'Duration' : 'duration',
 				'Track' : 'trackno',
 				}
+		# Preemptively set our IntegerField trackno to None
+		new_song.trackno = None
 		# Run exiftool on the song
 		exiftool_path = APP_ROOT + '/exiftool/exiftool'
 		proc = subprocess.Popen([exiftool_path, abs_song_path],
@@ -157,8 +159,16 @@ class Song(models.Model):
 					if line.startswith(metadata_entry):
 						colon_index = line.find(':')
 						exiftool_metadata_contents = line[(colon_index+2):-1]
-						# Set field to the exiftool metadata we found
-						setattr(new_song, metadata_dict[metadata_entry],
+						# Set field to the exiftool metadata we found. Make sure trackno is int
+						if metadata_entry == 'Track':
+							# Some songs have a TRACKTOTAL field that may obscure our scrape
+							slash_index = line.find('/')
+							if slash_index != -1: # Found '/' in Track field
+								exiftool_metadata_contents = line[(colon_index+2):slash_index]
+							setattr(new_song, metadata_dict[metadata_entry],
+								int(exiftool_metadata_contents))
+						else: 
+							setattr(new_song, metadata_dict[metadata_entry],
 								exiftool_metadata_contents)
 					# Check if there's embedded art
 					elif line.startswith('Picture Mime Type'):
@@ -190,12 +200,16 @@ class Song(models.Model):
 			base_filename = str(new_song.pk)
 			filename_suffix = '.' + image_suffix
 			image_path = os.path.join(dir_name, base_filename + filename_suffix)
+			[static_path_head, static_path_tail] = os.path.split(STATIC_FILE_ROOT)
+			static_path_tail = os.path.join('/' , static_path_tail)
+			rel_dir_name = os.path.join(static_path_tail, 'afkradio/album_art')
+			rel_path = os.path.join(rel_dir_name, base_filename + filename_suffix) 
 			with open(image_path, 'wb') as image_out:
-				save_proc = subprocess.Popen([exiftool_path, '-b', abs_song_path],
+				save_proc = subprocess.Popen([exiftool_path, '-picture', '-b', abs_song_path],
 						 stderr = subprocess.PIPE,
 						 stdout = image_out)
 			# Add image path to artpath
-			new_song.artpath = image_path
+			new_song.artpath = rel_path
 			new_song.save()
 
 
