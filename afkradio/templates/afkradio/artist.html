@@ -25,7 +25,7 @@
 			<a href="{% url 'afkradio:singlesong' song.id %}">{{ song.title  }}</a>
 		</div>
 		<div class="song-album">
-			<a href="{% url 'afkradio:album' %}?name={{ song.album }}">{{ song.album }}</a>
+			<a href="{% url 'afkradio:album' %}?name={{ song.album|fix_special_chars }}">{{ song.album }}</a>
 		</div>
 		<div class="song-year">{{ song.year }}</div>
 		<div class="song-playcount">{{ song.playcount}}</div>

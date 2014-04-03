@@ -7,7 +7,7 @@
 {% if songs_list.0.artpath %}
 <div class="subheading-container">
 	<div class="left-75-subheading">
-		<h1>{{ query }} ({{ songs_list.0.year }})</h1>
+		<h1>{{ query }} {% if songs_list.0.year %}({{ songs_list.0.year }}){% endif %}</h1>
 	</div>
 	<div class="right-25-subheading">
 		<img class="subheading-image" src="{{ songs_list.0.artpath }}" alt="Album Art for {{ query }}" />
@@ -16,7 +16,7 @@
 {% else %}
 <div class="subheading-container">
 	<div class="content-subheading">
-		<h1>{{ query }} ({{ songs_list.0.year }})</h1>
+		<h1>{{ query }} {% if songs_list.0.year %}({{ songs_list.0.year }}){% endif %}</h1>
 	</div>
 </div>
 {% endif %}
@@ -34,10 +34,10 @@
 	<div class="content-row">
 		<div class="song-trackno">{{ song.trackno }}</div>
 		<div class="song-title">
-			<a href="{% url 'afkradio:singlesong' song.id %}">{{ song.title  }}</a>
+			<a href="{% url 'afkradio:singlesong' song.pk %}">{{ song.title  }}</a>
 		</div>
 		<div class="song-artist">
-			<a href="{% url 'afkradio:artist' %}?name={{ song.artist }}">{{ song.artist}}</a></div>
+			<a href="{% url 'afkradio:artist' %}?name={{ song.artist|fix_special_chars }}">{{ song.artist}}</a></div>
 		<div class="song-playcount">{{ song.playcount}}</div>
 		<div class="song-favecount">{{ song.favecount}}</div>
 		<div class="song-request">

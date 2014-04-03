@@ -7,9 +7,9 @@ urlpatterns = patterns ('',
 		url(r'^$', views.HomeView.as_view(), name='home'),
 		url(r'^song/$', views.SongView.as_view(), name='songs'),
 		url(r'^song/(?P<pk>\d+)/$', views.SingleSongView.as_view(), name='singlesong'),
-		url(r'^search/$', views.search, name='search'),
-		url(r'^artist/$', views.artist, name='artist'),
-		url(r'^album/$', views.album, name='album'),
+		url(r'^search/$', views.SearchView, name='search'),
+		url(r'^artist/$', views.ArtistView, name='artist'),
+		url(r'^album/$', views.AlbumView, name='album'),
 
 
 )

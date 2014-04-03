@@ -27,6 +27,25 @@ def get_song_artist(playlist_song, length=None):
 	else:
 		return shorten(artist, length)
 
+# The characters + & ; % # need to use their URL encoding reference
+# The following filter fixes them
+@register.filter(name='fix_special_chars')
+def fix_special_chars(url_string):
+	# Replace % first or it will affect later replacements
+	url_string = url_string.replace('%', '%25')
+	special_characters_dict = {
+			'#' : '%23',
+			'&' : '%26',
+			'+' : '%2B',
+			';' : '%3B',
+			}
+	for special_character in special_characters_dict.keys():
+		url_string = url_string.replace(special_character, \
+				special_characters_dict[special_character])
+	# Re-encode unicode
+	url_string = url_string.encode('utf-8')
+	return url_string
+
 class PlaylistContentNode(Node):
 	def __init__(self, count, varname):
 		self.count = count

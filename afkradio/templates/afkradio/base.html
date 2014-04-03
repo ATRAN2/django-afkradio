@@ -20,7 +20,7 @@
 				<div class="nav-container clearflix">
 					<nav>
 						<ul>
-							<li id="home">{% block home %}<a href="">home</a>{% endblock %}</li>
+							<li id="home">{% block home %}<a href="{% url 'afkradio:home' %}">Home</a>{% endblock %}</li>
 							<li>{% block songs %}<a href="{% url 'afkradio:songs' %}">Songs</a>{% endblock songs %}</li>
 							<li>{% block queue %}<a href="">poop2</a>{% endblock queue %}</li>
 							<li>{% block history %}<a href="">poop3</a>{% endblock history %}</li>
@@ -79,7 +79,7 @@
 						{% endif %}
 							<div class="timetable">{{ play_time }}</div>
 							<div class="sidebar-artist">
-								<a href="{% url 'afkradio:artist' %}?name={{ song|get_song_artist }}">{{ song|get_song_artist }}</a>
+								<a href="{% url 'afkradio:artist' %}?name={{ song|get_song_artist|fix_special_chars }}">{{ song|get_song_artist }}</a>
 							</div>
 							<div class="sidebar-title">
 								<a href="{% url 'afkradio:singlesong' song.song_id %}">{{ song|get_song_title }}</a>
